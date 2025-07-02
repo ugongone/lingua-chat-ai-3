@@ -1,102 +1,160 @@
-import Image, { type ImageProps } from "next/image";
-import { Button } from "@repo/ui/button";
-import styles from "./page.module.css";
+"use client"
 
-type Props = Omit<ImageProps, "src"> & {
-  srcLight: string;
-  srcDark: string;
-};
+import type React from "react"
 
-const ThemeImage = (props: Props) => {
-  const { srcLight, srcDark, ...rest } = props;
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Copy, Volume2, Mic, MicOff } from "lucide-react"
+
+interface Message {
+  id: string
+  role: "user" | "assistant"
+  content: string
+  timestamp: string
+}
+
+export default function ChatUI() {
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: "1",
+      role: "assistant",
+      content: "Hello, I am a generative AI agent. How may I assist you today?",
+      timestamp: "4:08:28 PM",
+    },
+    {
+      id: "2",
+      role: "user",
+      content: "Hi, I'd like to check my bill.",
+      timestamp: "4:08:37 PM",
+    },
+    {
+      id: "3",
+      role: "assistant",
+      content: `Please hold for a second.
+
+Ok, I can help you with that
+
+I'm pulling up your current bill information
+
+Your current bill is $150, and it is due on August 31, 2024.
+
+If you need more details, feel free to ask!`,
+      timestamp: "4:08:37 PM",
+    },
+  ])
+
+  const [input, setInput] = useState("")
+  const [isRecording, setIsRecording] = useState(false)
+
+  const handleSend = () => {
+    if (input.trim()) {
+      const newMessage: Message = {
+        id: Date.now().toString(),
+        role: "user",
+        content: input,
+        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+      }
+      setMessages([...messages, newMessage])
+      setInput("")
+    }
+  }
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleSend()
+    }
+  }
+
+  const handleVoiceInput = () => {
+    setIsRecording(!isRecording)
+    // Voice recording logic would go here
+  }
+
+  const handlePlayAudio = (messageId: string) => {
+    // Audio playback logic would go here
+    console.log("Playing audio for message:", messageId)
+  }
+
+  const handleCopy = (content: string) => {
+    navigator.clipboard.writeText(content)
+  }
 
   return (
-    <>
-      <Image {...rest} src={srcLight} className="imgLight" />
-      <Image {...rest} src={srcDark} className="imgDark" />
-    </>
-  );
-};
+    <div className="flex flex-col h-screen max-w-4xl mx-auto bg-white">
+      {/* Chat Messages */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        {messages.map((message) => (
+          <div key={message.id} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
+            <div className={`flex max-w-[80%] ${message.role === "user" ? "flex-row-reverse" : "flex-row"}`}>
+              {message.role === "assistant" && null}
 
-export default function Home() {
-  return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <ThemeImage
-          className={styles.logo}
-          srcLight="turborepo-dark.svg"
-          srcDark="turborepo-light.svg"
-          alt="Turborepo logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol>
-          <li>
-            Get started by editing <code>apps/web/app/page.tsx</code>
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+              <div className={`flex flex-col ${message.role === "user" ? "items-end" : "items-start"}`}>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="font-semibold text-gray-900">
+                    {message.role === "assistant" ? "GenerativeAgent" : "G5"}
+                  </span>
+                  <span className="text-sm text-gray-500">{message.timestamp}</span>
+                </div>
 
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new/clone?demo-description=Learn+to+implement+a+monorepo+with+a+two+Next.js+sites+that+has+installed+three+local+packages.&demo-image=%2F%2Fimages.ctfassets.net%2Fe5382hct74si%2F4K8ZISWAzJ8X1504ca0zmC%2F0b21a1c6246add355e55816278ef54bc%2FBasic.png&demo-title=Monorepo+with+Turborepo&demo-url=https%3A%2F%2Fexamples-basic-web.vercel.sh%2F&from=templates&project-name=Monorepo+with+Turborepo&repository-name=monorepo-turborepo&repository-url=https%3A%2F%2Fgithub.com%2Fvercel%2Fturborepo%2Ftree%2Fmain%2Fexamples%2Fbasic&root-directory=apps%2Fdocs&skippable-integrations=1&teamSlug=vercel&utm_source=create-turbo"
-            target="_blank"
-            rel="noopener noreferrer"
+                <div
+                  className={`rounded-lg p-4 ${
+                    message.role === "user" ? "bg-blue-500 text-white" : "bg-gray-50 text-gray-900"
+                  }`}
+                >
+                  <div className="whitespace-pre-line">{message.content}</div>
+                </div>
+
+                {message.role === "assistant" && (
+                  <div className="flex items-center gap-2 mt-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 hover:bg-gray-100"
+                      onClick={() => handleCopy(message.content)}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 hover:bg-gray-100"
+                      onClick={() => handlePlayAudio(message.id)}
+                    >
+                      <Volume2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {message.role === "user" && null}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Voice Input Area */}
+      <div className="border-t bg-white p-6">
+        <div className="flex justify-center">
+          <Button
+            onClick={handleVoiceInput}
+            variant={isRecording ? "destructive" : "default"}
+            size="lg"
+            className={`h-16 w-16 rounded-full p-0 shadow-lg transition-all duration-200 ${
+              isRecording
+                ? "animate-pulse bg-red-500 hover:bg-red-600 scale-110"
+                : "bg-blue-500 hover:bg-blue-600 hover:scale-105"
+            }`}
           >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            href="https://turborepo.com/docs?utm_source"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.secondary}
-          >
-            Read our docs
-          </a>
+            {isRecording ? <MicOff className="h-8 w-8 text-white" /> : <Mic className="h-8 w-8 text-white" />}
+          </Button>
         </div>
-        <Button appName="web" className={styles.secondary}>
-          Open alert
-        </Button>
-      </main>
-      <footer className={styles.footer}>
-        <a
-          href="https://vercel.com/templates?search=turborepo&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          href="https://turborepo.com?utm_source=create-turbo"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to turborepo.com →
-        </a>
-      </footer>
+        {isRecording && (
+          <p className="text-center text-sm text-gray-600 mt-3 animate-pulse">録音中... タップして停止</p>
+        )}
+        {!isRecording && (
+          <p className="text-center text-sm text-gray-500 mt-3">マイクボタンを押して会話を始めましょう</p>
+        )}
+      </div>
     </div>
-  );
+  )
 }
