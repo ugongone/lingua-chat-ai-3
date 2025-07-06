@@ -26,28 +26,12 @@ export default function ChatUI() {
     {
       id: "1",
       role: "assistant",
-      content: "Hello, I am a generative AI agent. How may I assist you today?",
-      timestamp: "4:08:28 PM",
-    },
-    {
-      id: "2",
-      role: "user",
-      content: "Hi, I'd like to check my bill.",
-      timestamp: "4:08:37 PM",
-    },
-    {
-      id: "3",
-      role: "assistant",
-      content: `Please hold for a second.
-
-      Ok, I can help you with that.
-
-      I'm pulling up your current bill information.
-
-      Your current bill is $150, and it is due on August 31, 2024.
-
-      If you need more details, feel free to ask!`,
-      timestamp: "4:08:37 PM",
+      content: "Hello! Please speak to me using voice. Press the microphone button to start our conversation.",
+      timestamp: new Date().toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      }),
     },
   ]);
 
@@ -132,11 +116,6 @@ export default function ChatUI() {
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      handleSend();
-    }
-  };
 
   // Initialize Speech Recognition
   useEffect(() => {
@@ -154,11 +133,14 @@ export default function ChatUI() {
         let interimTranscript = "";
 
         for (let i = event.resultIndex; i < event.results.length; i++) {
-          const transcript = event.results[i][0].transcript;
-          if (event.results[i].isFinal) {
-            finalTranscript += transcript;
-          } else {
-            interimTranscript += transcript;
+          const result = event.results[i];
+          if (result && result[0]) {
+            const transcript = result[0].transcript;
+            if (result.isFinal) {
+              finalTranscript += transcript;
+            } else {
+              interimTranscript += transcript;
+            }
           }
         }
 
