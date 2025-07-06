@@ -26,7 +26,8 @@ export default function ChatUI() {
     {
       id: "1",
       role: "assistant",
-      content: "Hello! Please speak to me using voice. Press the microphone button to start our conversation.",
+      content:
+        "Hello! Please speak to me using voice. Press the microphone button to start our conversation.",
       timestamp: new Date().toLocaleTimeString([], {
         hour: "2-digit",
         minute: "2-digit",
@@ -35,7 +36,6 @@ export default function ChatUI() {
     },
   ]);
 
-  const [input, setInput] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [isAIResponding, setIsAIResponding] = useState(false);
@@ -44,7 +44,7 @@ export default function ChatUI() {
   const generateAIResponse = async (userMessage: string) => {
     try {
       setIsAIResponding(true);
-      
+
       const conversationHistory = [
         ...messages,
         {
@@ -53,13 +53,13 @@ export default function ChatUI() {
         },
       ];
 
-      const response = await fetch('/api/chat', {
-        method: 'POST',
+      const response = await fetch("/api/chat", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          messages: conversationHistory.map(msg => ({
+          messages: conversationHistory.map((msg) => ({
             role: msg.role,
             content: msg.content,
           })),
@@ -71,51 +71,31 @@ export default function ChatUI() {
       }
 
       const aiMessage = await response.json();
-      
+
       if (aiMessage.error) {
         throw new Error(aiMessage.error);
       }
 
-      setMessages(prev => [...prev, aiMessage]);
+      setMessages((prev) => [...prev, aiMessage]);
     } catch (error) {
-      console.error('AI response error:', error);
-      
+      console.error("AI response error:", error);
+
       const errorMessage: Message = {
         id: Date.now().toString(),
         role: "assistant",
-        content: "申し訳ございません。AIの応答生成中にエラーが発生しました。もう一度お試しください。",
+        content:
+          "申し訳ございません。AIの応答生成中にエラーが発生しました。もう一度お試しください。",
         timestamp: new Date().toLocaleTimeString([], {
           hour: "2-digit",
           minute: "2-digit",
           second: "2-digit",
         }),
       };
-      setMessages(prev => [...prev, errorMessage]);
+      setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setIsAIResponding(false);
     }
   };
-
-  const handleSend = async () => {
-    if (input.trim()) {
-      const newMessage: Message = {
-        id: Date.now().toString(),
-        role: "user",
-        content: input,
-        timestamp: new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-        }),
-      };
-      setMessages([...messages, newMessage]);
-      const userInput = input;
-      setInput("");
-      
-      await generateAIResponse(userInput);
-    }
-  };
-
 
   // Initialize Speech Recognition
   useEffect(() => {
@@ -159,7 +139,7 @@ export default function ChatUI() {
           };
           setMessages((prev) => [...prev, newMessage]);
           setTranscript("");
-          
+
           generateAIResponse(finalTranscript);
         }
       };
@@ -220,7 +200,7 @@ export default function ChatUI() {
               >
                 <div className="flex items-center gap-2 mb-1">
                   <span className="font-semibold text-gray-900">
-                    {message.role === "assistant" ? "GenerativeAgent" : "G5"}
+                    {message.role === "assistant" ? "Mr.Bob" : "ぼく"}
                   </span>
                   <span className="text-sm text-gray-500">
                     {message.timestamp}
