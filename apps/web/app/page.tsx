@@ -54,9 +54,65 @@ export default function ChatUI() {
   const [input, setInput] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState("");
+  const [isAIResponding, setIsAIResponding] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
 
-  const handleSend = () => {
+  const generateAIResponse = async (userMessage: string) => {
+    try {
+      setIsAIResponding(true);
+      
+      const conversationHistory = [
+        ...messages,
+        {
+          role: "user" as const,
+          content: userMessage,
+        },
+      ];
+
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: conversationHistory.map(msg => ({
+            role: msg.role,
+            content: msg.content,
+          })),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const aiMessage = await response.json();
+      
+      if (aiMessage.error) {
+        throw new Error(aiMessage.error);
+      }
+
+      setMessages(prev => [...prev, aiMessage]);
+    } catch (error) {
+      console.error('AI response error:', error);
+      
+      const errorMessage: Message = {
+        id: Date.now().toString(),
+        role: "assistant",
+        content: "申し訳ございません。AIの応答生成中にエラーが発生しました。もう一度お試しください。",
+        timestamp: new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        }),
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsAIResponding(false);
+    }
+  };
+
+  const handleSend = async () => {
     if (input.trim()) {
       const newMessage: Message = {
         id: Date.now().toString(),
@@ -69,7 +125,10 @@ export default function ChatUI() {
         }),
       };
       setMessages([...messages, newMessage]);
+      const userInput = input;
       setInput("");
+      
+      await generateAIResponse(userInput);
     }
   };
 
@@ -118,6 +177,8 @@ export default function ChatUI() {
           };
           setMessages((prev) => [...prev, newMessage]);
           setTranscript("");
+          
+          generateAIResponse(finalTranscript);
         }
       };
 
@@ -254,9 +315,14 @@ export default function ChatUI() {
             )}
           </>
         )}
-        {!isRecording && (
+        {!isRecording && !isAIResponding && (
           <p className="text-center text-sm text-gray-500 mt-3">
             マイクボタンを押して会話を始めましょう
+          </p>
+        )}
+        {isAIResponding && (
+          <p className="text-center text-sm text-blue-600 mt-3 animate-pulse">
+            AI が考えています...
           </p>
         )}
       </div>

@@ -3,9 +3,10 @@
 - 必ず "Plan → Reasoning → Code" の順で進行すること
 - /apps/docs/guide/0000-adr-template.mdの内容を参考に、/apps/docs/adr/ 配下に機能追加の設計書を作成すること
 
-## TODO
+## Todo
 
 以下のうち、指示された箇所に絞って実装すること。
+明示的に指示されていない箇所は実装しないこと。
 
 ### フェーズ1: 基本機能実装
 
