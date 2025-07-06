@@ -2,17 +2,10 @@
 
 import type React from "react";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Copy, Volume2, Mic, MicOff } from "lucide-react";
 
-// Speech Recognition types
-declare global {
-  interface Window {
-    SpeechRecognition: typeof SpeechRecognition;
-    webkitSpeechRecognition: typeof SpeechRecognition;
-  }
-}
 
 interface Message {
   id: string;
@@ -37,9 +30,79 @@ export default function ChatUI() {
   ]);
 
   const [isRecording, setIsRecording] = useState(false);
-  const [transcript, setTranscript] = useState("");
+  const [isTranscribing, setIsTranscribing] = useState(false);
   const [isAIResponding, setIsAIResponding] = useState(false);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const [detectedLanguage, setDetectedLanguage] = useState<string>('');
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+
+  const transcribeAudio = async (audioBlob: Blob) => {
+    try {
+      setIsTranscribing(true);
+      
+      const formData = new FormData();
+      formData.append('audio', audioBlob, 'recording.wav');
+
+      console.log('Sending audio for transcription, size:', audioBlob.size);
+
+      const response = await fetch('/api/transcribe', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Transcription failed');
+      }
+
+      const result = await response.json();
+      
+      if (result.text) {
+        console.log('Transcription result:', {
+          text: result.text,
+          language: result.language,
+          duration: result.duration
+        });
+
+        // 検出された言語を保存
+        setDetectedLanguage(result.language || '');
+        
+        // 認識されたテキストでメッセージを作成
+        const newMessage: Message = {
+          id: Date.now().toString(),
+          role: 'user',
+          content: result.text,
+          timestamp: new Date().toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+          }),
+        };
+        
+        setMessages(prev => [...prev, newMessage]);
+        
+        // AI応答を生成
+        await generateAIResponse(result.text);
+      }
+    } catch (error) {
+      console.error('Transcription error:', error);
+      
+      // エラーメッセージを表示
+      const errorMessage: Message = {
+        id: Date.now().toString(),
+        role: "assistant",
+        content: "申し訳ございません。音声の認識中にエラーが発生しました。もう一度お試しください。",
+        timestamp: new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        }),
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsTranscribing(false);
+    }
+  };
 
   const generateAIResponse = async (userMessage: string) => {
     try {
@@ -97,78 +160,63 @@ export default function ChatUI() {
     }
   };
 
-  // Initialize Speech Recognition
-  useEffect(() => {
-    if (typeof window !== "undefined" && "webkitSpeechRecognition" in window) {
-      const SpeechRecognition =
-        window.webkitSpeechRecognition || window.SpeechRecognition;
-      const recognition = new SpeechRecognition();
-
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.lang = "ja-JP";
-
-      recognition.onresult = (event) => {
-        let finalTranscript = "";
-        let interimTranscript = "";
-
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const result = event.results[i];
-          if (result && result[0]) {
-            const transcript = result[0].transcript;
-            if (result.isFinal) {
-              finalTranscript += transcript;
-            } else {
-              interimTranscript += transcript;
-            }
-          }
+  // Initialize MediaRecorder for voice recording
+  const initializeMediaRecorder = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          sampleRate: 44100,
         }
-
-        setTranscript(interimTranscript);
-
-        if (finalTranscript) {
-          const newMessage: Message = {
-            id: Date.now().toString(),
-            role: "user",
-            content: finalTranscript,
-            timestamp: new Date().toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-              second: "2-digit",
-            }),
-          };
-          setMessages((prev) => [...prev, newMessage]);
-          setTranscript("");
-
-          generateAIResponse(finalTranscript);
+      });
+      
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: 'audio/webm;codecs=opus'
+      });
+      
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
         }
       };
-
-      recognition.onerror = (event) => {
-        console.error("Speech recognition error:", event.error);
-        setIsRecording(false);
+      
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        audioChunksRef.current = [];
+        
+        // Stop all tracks to release microphone
+        stream.getTracks().forEach(track => track.stop());
+        
+        if (audioBlob.size > 0) {
+          await transcribeAudio(audioBlob);
+        }
       };
-
-      recognition.onend = () => {
-        setIsRecording(false);
-      };
-
-      recognitionRef.current = recognition;
+      
+      return mediaRecorder;
+    } catch (error) {
+      console.error('Error accessing microphone:', error);
+      alert('マイクへのアクセスが許可されていません。ブラウザの設定を確認してください。');
+      return null;
     }
-  }, []);
+  };
 
-  const handleVoiceInput = () => {
-    if (!recognitionRef.current) {
-      alert("音声認識はこのブラウザでサポートされていません");
-      return;
-    }
-
+  const handleVoiceInput = async () => {
     if (isRecording) {
-      recognitionRef.current.stop();
+      // Stop recording
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop();
+      }
       setIsRecording(false);
     } else {
-      recognitionRef.current.start();
-      setIsRecording(true);
+      // Start recording
+      const mediaRecorder = await initializeMediaRecorder();
+      if (mediaRecorder) {
+        mediaRecorderRef.current = mediaRecorder;
+        audioChunksRef.current = [];
+        mediaRecorder.start();
+        setIsRecording(true);
+      }
     }
   };
 
@@ -266,25 +314,28 @@ export default function ChatUI() {
           </Button>
         </div>
         {isRecording && (
-          <>
-            <p className="text-center text-sm text-gray-600 mt-3 animate-pulse">
-              録音中... タップして停止
-            </p>
-            {transcript && (
-              <p className="text-center text-sm text-blue-600 mt-2 italic">
-                "{transcript}"
-              </p>
-            )}
-          </>
+          <p className="text-center text-sm text-red-600 mt-3 animate-pulse">
+            Recording... Tap to stop / 録音中... タップして停止
+          </p>
         )}
-        {!isRecording && !isAIResponding && (
-          <p className="text-center text-sm text-gray-500 mt-3">
-            マイクボタンを押して会話を始めましょう
+        {isTranscribing && (
+          <p className="text-center text-sm text-blue-600 mt-3 animate-pulse">
+            Analyzing voice... / 音声を解析中...
+          </p>
+        )}
+        {detectedLanguage && !isRecording && !isTranscribing && !isAIResponding && (
+          <p className="text-center text-xs text-gray-500 mt-1">
+            Detected: {detectedLanguage === 'ja' ? '日本語' : detectedLanguage === 'en' ? 'English' : detectedLanguage}
           </p>
         )}
         {isAIResponding && (
           <p className="text-center text-sm text-blue-600 mt-3 animate-pulse">
-            AI が考えています...
+            AI generating response... / AI が回答を生成中...
+          </p>
+        )}
+        {!isRecording && !isTranscribing && !isAIResponding && (
+          <p className="text-center text-sm text-gray-500 mt-3">
+            Press the microphone button to start conversation / マイクボタンを押して会話を始めましょう
           </p>
         )}
       </div>
