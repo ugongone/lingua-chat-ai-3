@@ -17,13 +17,20 @@ export async function POST(request: NextRequest) {
     }
 
     const completion = await client.chat.completions.create({
-      model: "gpt-4.1-mini",
+      model: "gpt-4o-mini",
       messages: messages,
       temperature: 0.7,
       max_tokens: 1000,
     });
 
-    const assistantMessage = completion.choices[0].message;
+    const assistantMessage = completion.choices[0]?.message;
+
+    if (!assistantMessage) {
+      return NextResponse.json(
+        { error: "No response from AI" },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({
       id: Date.now().toString(),
