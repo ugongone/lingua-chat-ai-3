@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
 
     const transcription = await client.audio.transcriptions.create({
       file: audioFile,
-      model: 'whisper-1',
+      model: 'gpt-4o-transcribe',
       // 言語を指定せず、自動検出を利用（日本語・英語両対応）
       response_format: 'verbose_json', // 言語検出結果も取得
       temperature: 0.2, // 一貫性を重視
