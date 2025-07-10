@@ -25,11 +25,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // サポートされているファイル形式チェック
-    const supportedTypes = ['audio/wav', 'audio/mp3', 'audio/m4a', 'audio/ogg', 'audio/webm'];
+    // サポートされているファイル形式チェック（gpt-4o-transcribe用）
+    const supportedTypes = [
+      'audio/wav', 
+      'audio/mp3', 
+      'audio/m4a', 
+      'audio/ogg', 
+      'audio/webm', 
+      'audio/webm;codecs=opus',
+      'audio/ogg;codecs=opus',
+      'audio/mp4'
+    ];
+    
+    console.log(`Received audio file type: "${audioFile.type}"`);
+    console.log(`Supported types: ${supportedTypes.join(', ')}`);
+    
     if (!supportedTypes.includes(audioFile.type)) {
       return NextResponse.json(
-        { error: 'Unsupported audio format. Supported formats: WAV, MP3, M4A, OGG, WebM' },
+        { error: `Unsupported audio format: "${audioFile.type}". Supported formats: WAV, MP3, M4A, OGG, WebM, MP4` },
         { status: 400 }
       );
     }
@@ -40,16 +53,14 @@ export async function POST(request: NextRequest) {
       file: audioFile,
       model: 'gpt-4o-transcribe',
       // 言語を指定せず、自動検出を利用（日本語・英語両対応）
-      response_format: 'verbose_json', // 言語検出結果も取得
+      response_format: 'json', // gpt-4o-transcribeでサポートされている形式
       temperature: 0.2, // 一貫性を重視
     });
 
-    console.log(`Transcription completed. Language: ${transcription.language}, Text: ${transcription.text}`);
+    console.log(`Transcription completed. Text: ${transcription.text}`);
 
     return NextResponse.json({
       text: transcription.text,
-      language: transcription.language, // 検出された言語
-      duration: transcription.duration, // 音声の長さ
       timestamp: new Date().toISOString(),
     });
   } catch (error) {

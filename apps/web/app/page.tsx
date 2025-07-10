@@ -36,12 +36,12 @@ export default function ChatUI() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
-  const transcribeAudio = async (audioBlob: Blob) => {
+  const transcribeAudio = async (audioBlob: Blob, filename: string = 'recording.wav') => {
     try {
       setIsTranscribing(true);
       
       const formData = new FormData();
-      formData.append('audio', audioBlob, 'recording.wav');
+      formData.append('audio', audioBlob, filename);
 
       console.log('Sending audio for transcription, size:', audioBlob.size);
 
@@ -171,8 +171,23 @@ export default function ChatUI() {
         }
       });
       
+      // ブラウザ別の最適な形式を動的検出
+      let mimeType = 'audio/webm;codecs=opus'; // デフォルト
+      let fileExtension = '.webm';
+      
+      if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+        mimeType = 'audio/webm;codecs=opus';
+        fileExtension = '.webm';
+      } else if (MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')) {
+        mimeType = 'audio/ogg;codecs=opus';
+        fileExtension = '.ogg';
+      } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+        mimeType = 'audio/mp4';
+        fileExtension = '.mp4';
+      }
+      
       const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'audio/webm;codecs=opus'
+        mimeType: mimeType
       });
       
       mediaRecorder.ondataavailable = (event) => {
@@ -182,14 +197,14 @@ export default function ChatUI() {
       };
       
       mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
         audioChunksRef.current = [];
         
         // Stop all tracks to release microphone
         stream.getTracks().forEach(track => track.stop());
         
         if (audioBlob.size > 0) {
-          await transcribeAudio(audioBlob);
+          await transcribeAudio(audioBlob, `recording${fileExtension}`);
         }
       };
       
