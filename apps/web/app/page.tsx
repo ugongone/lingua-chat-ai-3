@@ -348,7 +348,7 @@ export default function ChatUI() {
             )}
           </Button>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 relative">
             <Button
               variant={autoPlayAudio ? "default" : "outline"}
               size="sm"
@@ -384,7 +384,7 @@ export default function ChatUI() {
           </div>
 
           {showHelp && (
-            <div className="mt-4 p-4 bg-gray-50 rounded-lg text-sm text-gray-700">
+            <div className="absolute bottom-16 right-0 mb-2 p-3 bg-white border border-gray-200 rounded-lg shadow-lg text-sm text-gray-700 w-80">
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Volume2 className="h-4 w-4" />
@@ -397,6 +397,8 @@ export default function ChatUI() {
                   </span>
                 </div>
               </div>
+              {/* Arrow pointing down */}
+              <div className="absolute -bottom-2 right-4 w-4 h-4 bg-white border-r border-b border-gray-200 transform rotate-45"></div>
             </div>
           )}
         </div>
