@@ -330,7 +330,7 @@ export default function ChatUI() {
 
       {/* Voice Input Area */}
       <div className="border-t bg-white p-6">
-        <div className="flex justify-center items-center gap-4">
+        <div className="flex justify-center items-center">
           <Button
             onClick={handleVoiceInput}
             variant={isRecording ? "destructive" : "default"}
@@ -348,7 +348,7 @@ export default function ChatUI() {
             )}
           </Button>
 
-          <div className="flex items-center gap-2 relative">
+          <div className="absolute right-0 flex items-center gap-2">
             <Button
               variant={autoPlayAudio ? "default" : "outline"}
               size="sm"
@@ -373,40 +373,38 @@ export default function ChatUI() {
                 <Eye className="h-4 w-4" />
               )}
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-10 w-10 p-0 text-gray-500"
-              onClick={() => setShowHelp(!showHelp)}
-            >
-              <HelpCircle className="h-4 w-4" />
-            </Button>
-          </div>
-
-          {showHelp && (
-            <div className="absolute bottom-16 right-0 mb-2 p-3 bg-white border border-gray-200 rounded-lg shadow-lg text-sm text-gray-700 w-80">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Volume2 className="h-4 w-4" />
-                  <span>自動読み上げ: AIの回答を自動で音声再生します</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <EyeOff className="h-4 w-4" />
-                  <span>
-                    自動モザイク: AIの回答にぼかし効果をかけます（ホバーで解除）
-                  </span>
-                </div>
-              </div>
-              {/* Arrow pointing down */}
-              <div className="absolute -bottom-2 right-4 w-4 h-4 bg-white border-r border-b border-gray-200 transform rotate-45"></div>
+            <div className="relative">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-10 w-10 p-0 text-gray-500"
+                onClick={() => setShowHelp(!showHelp)}
+              >
+                <HelpCircle className="h-4 w-4" />
+              </Button>
             </div>
-          )}
+
+            {showHelp && (
+              <div className="absolute bottom-16 right-0 mb-2 p-3 bg-white border border-gray-200 rounded-lg shadow-lg text-sm text-gray-700 w-80 z-10">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Volume2 className="h-4 w-4" />
+                    <span>自動読み上げ: AIの回答を自動で音声再生します</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <EyeOff className="h-4 w-4" />
+                    <span>
+                      自動モザイク:
+                      AIの回答にぼかし効果をかけます（ホバーで解除）
+                    </span>
+                  </div>
+                </div>
+                {/* Arrow pointing down */}
+                <div className="absolute -bottom-2 right-4 w-4 h-4 bg-white border-r border-b border-gray-200 transform rotate-45"></div>
+              </div>
+            )}
+          </div>
         </div>
-        {isRecording && (
-          <p className="text-center text-sm text-red-600 mt-3 animate-pulse">
-            Recording... Tap to stop / 録音中... タップして停止
-          </p>
-        )}
         {isTranscribing && (
           <p className="text-center text-sm text-blue-600 mt-3 animate-pulse">
             Analyzing voice... / 音声を解析中...
@@ -428,12 +426,6 @@ export default function ChatUI() {
         {isAIResponding && (
           <p className="text-center text-sm text-blue-600 mt-3 animate-pulse">
             AI generating response... / AI が回答を生成中...
-          </p>
-        )}
-        {!isRecording && !showHelp && !isTranscribing && !isAIResponding && (
-          <p className="text-center text-sm text-gray-500 mt-3">
-            Press the microphone button to start conversation /
-            マイクボタンを押して会話を始めましょう
           </p>
         )}
       </div>
