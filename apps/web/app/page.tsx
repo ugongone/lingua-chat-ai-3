@@ -4,8 +4,16 @@ import type React from "react";
 
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Copy, Volume2, Mic, MicOff } from "lucide-react";
-
+import {
+  Copy,
+  Volume2,
+  Mic,
+  MicOff,
+  VolumeX,
+  Eye,
+  EyeOff,
+  HelpCircle,
+} from "lucide-react";
 
 interface Message {
   id: string;
@@ -32,73 +40,80 @@ export default function ChatUI() {
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [isAIResponding, setIsAIResponding] = useState(false);
-  const [detectedLanguage, setDetectedLanguage] = useState<string>('');
+  const [detectedLanguage, setDetectedLanguage] = useState<string>("");
+  const [autoPlayAudio, setAutoPlayAudio] = useState(false);
+  const [autoBlurText, setAutoBlurText] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
-  const transcribeAudio = async (audioBlob: Blob, filename: string = 'recording.wav') => {
+  const transcribeAudio = async (
+    audioBlob: Blob,
+    filename: string = "recording.wav"
+  ) => {
     try {
       setIsTranscribing(true);
-      
+
       const formData = new FormData();
-      formData.append('audio', audioBlob, filename);
+      formData.append("audio", audioBlob, filename);
 
-      console.log('Sending audio for transcription, size:', audioBlob.size);
+      console.log("Sending audio for transcription, size:", audioBlob.size);
 
-      const response = await fetch('/api/transcribe', {
-        method: 'POST',
+      const response = await fetch("/api/transcribe", {
+        method: "POST",
         body: formData,
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Transcription failed');
+        throw new Error(errorData.error || "Transcription failed");
       }
 
       const result = await response.json();
-      
+
       if (result.text) {
-        console.log('Transcription result:', {
+        console.log("Transcription result:", {
           text: result.text,
           language: result.language,
-          duration: result.duration
+          duration: result.duration,
         });
 
         // 検出された言語を保存
-        setDetectedLanguage(result.language || '');
-        
+        setDetectedLanguage(result.language || "");
+
         // 認識されたテキストでメッセージを作成
         const newMessage: Message = {
           id: Date.now().toString(),
-          role: 'user',
+          role: "user",
           content: result.text,
           timestamp: new Date().toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
           }),
         };
-        
-        setMessages(prev => [...prev, newMessage]);
-        
+
+        setMessages((prev) => [...prev, newMessage]);
+
         // AI応答を生成
         await generateAIResponse(result.text);
       }
     } catch (error) {
-      console.error('Transcription error:', error);
-      
+      console.error("Transcription error:", error);
+
       // エラーメッセージを表示
       const errorMessage: Message = {
         id: Date.now().toString(),
         role: "assistant",
-        content: "申し訳ございません。音声の認識中にエラーが発生しました。もう一度お試しください。",
+        content:
+          "申し訳ございません。音声の認識中にエラーが発生しました。もう一度お試しください。",
         timestamp: new Date().toLocaleTimeString([], {
           hour: "2-digit",
           minute: "2-digit",
           second: "2-digit",
         }),
       };
-      setMessages(prev => [...prev, errorMessage]);
+      setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setIsTranscribing(false);
     }
@@ -163,55 +178,57 @@ export default function ChatUI() {
   // Initialize MediaRecorder for voice recording
   const initializeMediaRecorder = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
+      const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
           sampleRate: 44100,
-        }
+        },
       });
-      
+
       // ブラウザ別の最適な形式を動的検出
-      let mimeType = 'audio/webm;codecs=opus'; // デフォルト
-      let fileExtension = '.webm';
-      
-      if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
-        mimeType = 'audio/webm;codecs=opus';
-        fileExtension = '.webm';
-      } else if (MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')) {
-        mimeType = 'audio/ogg;codecs=opus';
-        fileExtension = '.ogg';
-      } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
-        mimeType = 'audio/mp4';
-        fileExtension = '.mp4';
+      let mimeType = "audio/webm;codecs=opus"; // デフォルト
+      let fileExtension = ".webm";
+
+      if (MediaRecorder.isTypeSupported("audio/webm;codecs=opus")) {
+        mimeType = "audio/webm;codecs=opus";
+        fileExtension = ".webm";
+      } else if (MediaRecorder.isTypeSupported("audio/ogg;codecs=opus")) {
+        mimeType = "audio/ogg;codecs=opus";
+        fileExtension = ".ogg";
+      } else if (MediaRecorder.isTypeSupported("audio/mp4")) {
+        mimeType = "audio/mp4";
+        fileExtension = ".mp4";
       }
-      
+
       const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: mimeType
+        mimeType: mimeType,
       });
-      
+
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
           audioChunksRef.current.push(event.data);
         }
       };
-      
+
       mediaRecorder.onstop = async () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
         audioChunksRef.current = [];
-        
+
         // Stop all tracks to release microphone
-        stream.getTracks().forEach(track => track.stop());
-        
+        stream.getTracks().forEach((track) => track.stop());
+
         if (audioBlob.size > 0) {
           await transcribeAudio(audioBlob, `recording${fileExtension}`);
         }
       };
-      
+
       return mediaRecorder;
     } catch (error) {
-      console.error('Error accessing microphone:', error);
-      alert('マイクへのアクセスが許可されていません。ブラウザの設定を確認してください。');
+      console.error("Error accessing microphone:", error);
+      alert(
+        "マイクへのアクセスが許可されていません。ブラウザの設定を確認してください。"
+      );
       return null;
     }
   };
@@ -219,7 +236,10 @@ export default function ChatUI() {
   const handleVoiceInput = async () => {
     if (isRecording) {
       // Stop recording
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      if (
+        mediaRecorderRef.current &&
+        mediaRecorderRef.current.state !== "inactive"
+      ) {
         mediaRecorderRef.current.stop();
       }
       setIsRecording(false);
@@ -275,7 +295,7 @@ export default function ChatUI() {
                     message.role === "user"
                       ? "bg-blue-500 text-white"
                       : "bg-gray-50 text-gray-900"
-                  }`}
+                  } ${message.role === "assistant" && autoBlurText ? "blur-sm hover:blur-none transition-all duration-200" : ""}`}
                 >
                   <div className="whitespace-pre-line">{message.content}</div>
                 </div>
@@ -310,7 +330,7 @@ export default function ChatUI() {
 
       {/* Voice Input Area */}
       <div className="border-t bg-white p-6">
-        <div className="flex justify-center">
+        <div className="flex justify-center items-center gap-4">
           <Button
             onClick={handleVoiceInput}
             variant={isRecording ? "destructive" : "default"}
@@ -327,6 +347,58 @@ export default function ChatUI() {
               <Mic className="h-8 w-8 text-white" />
             )}
           </Button>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant={autoPlayAudio ? "default" : "outline"}
+              size="sm"
+              className="h-10 w-10 p-0"
+              onClick={() => setAutoPlayAudio(!autoPlayAudio)}
+            >
+              {autoPlayAudio ? (
+                <Volume2 className="h-4 w-4" />
+              ) : (
+                <VolumeX className="h-4 w-4" />
+              )}
+            </Button>
+            <Button
+              variant={autoBlurText ? "default" : "outline"}
+              size="sm"
+              className="h-10 w-10 p-0"
+              onClick={() => setAutoBlurText(!autoBlurText)}
+            >
+              {autoBlurText ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-10 w-10 p-0 text-gray-500"
+              onClick={() => setShowHelp(!showHelp)}
+            >
+              <HelpCircle className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {showHelp && (
+            <div className="mt-4 p-4 bg-gray-50 rounded-lg text-sm text-gray-700">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Volume2 className="h-4 w-4" />
+                  <span>自動読み上げ: AIの回答を自動で音声再生します</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <EyeOff className="h-4 w-4" />
+                  <span>
+                    自動モザイク: AIの回答にぼかし効果をかけます（ホバーで解除）
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
         {isRecording && (
           <p className="text-center text-sm text-red-600 mt-3 animate-pulse">
@@ -338,19 +410,28 @@ export default function ChatUI() {
             Analyzing voice... / 音声を解析中...
           </p>
         )}
-        {detectedLanguage && !isRecording && !isTranscribing && !isAIResponding && (
-          <p className="text-center text-xs text-gray-500 mt-1">
-            Detected: {detectedLanguage === 'ja' ? '日本語' : detectedLanguage === 'en' ? 'English' : detectedLanguage}
-          </p>
-        )}
+        {detectedLanguage &&
+          !isRecording &&
+          !isTranscribing &&
+          !isAIResponding && (
+            <p className="text-center text-xs text-gray-500 mt-1">
+              Detected:{" "}
+              {detectedLanguage === "ja"
+                ? "日本語"
+                : detectedLanguage === "en"
+                  ? "English"
+                  : detectedLanguage}
+            </p>
+          )}
         {isAIResponding && (
           <p className="text-center text-sm text-blue-600 mt-3 animate-pulse">
             AI generating response... / AI が回答を生成中...
           </p>
         )}
-        {!isRecording && !isTranscribing && !isAIResponding && (
+        {!isRecording && !showHelp && !isTranscribing && !isAIResponding && (
           <p className="text-center text-sm text-gray-500 mt-3">
-            Press the microphone button to start conversation / マイクボタンを押して会話を始めましょう
+            Press the microphone button to start conversation /
+            マイクボタンを押して会話を始めましょう
           </p>
         )}
       </div>
