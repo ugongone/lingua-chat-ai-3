@@ -377,7 +377,7 @@ export default function ChatUI() {
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      handleSend();
+      // Enterキーでの自動送信を無効化（明示的な送信ボタンクリックのみで送信）
     }
   };
 
