@@ -13,12 +13,14 @@ import {
   Eye,
   EyeOff,
   HelpCircle,
+  CheckCircle,
 } from "lucide-react";
 
 interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
+  correctedContent?: string;
   timestamp: string;
 }
 
@@ -46,6 +48,27 @@ export default function ChatUI() {
   const [showHelp, setShowHelp] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+
+  const correctEnglish = async (text: string): Promise<string | null> => {
+    try {
+      const response = await fetch('/api/correct-english', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text })
+      });
+
+      if (!response.ok) {
+        console.error('English correction failed:', response.status);
+        return null;
+      }
+
+      const result = await response.json();
+      return result.correctedText !== text ? result.correctedText : null;
+    } catch (error) {
+      console.error('English correction error:', error);
+      return null;
+    }
+  };
 
   const transcribeAudio = async (
     audioBlob: Blob,
@@ -81,11 +104,18 @@ export default function ChatUI() {
         // 検出された言語を保存
         setDetectedLanguage(result.language || "");
 
+        // 英語の場合は修正処理を実行
+        let correctedContent: string | undefined;
+        if (detectedLanguage === 'en' || result.text.match(/^[a-zA-Z\s.,!?'"]+$/)) {
+          correctedContent = await correctEnglish(result.text) || undefined;
+        }
+
         // 認識されたテキストでメッセージを作成
         const newMessage: Message = {
           id: Date.now().toString(),
           role: "user",
           content: result.text,
+          correctedContent,
           timestamp: new Date().toLocaleTimeString([], {
             hour: "2-digit",
             minute: "2-digit",
@@ -299,6 +329,23 @@ export default function ChatUI() {
                 >
                   <div className="whitespace-pre-line">{message.content}</div>
                 </div>
+
+                {/* 修正された英語の表示 */}
+                {message.role === "user" && message.correctedContent && (
+                  <div className="mt-2 rounded-lg p-3 bg-green-50 border border-green-200 text-green-800 text-sm max-w-full">
+                    <div className="flex items-start gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <div className="font-medium text-green-700 mb-1">
+                          修正版:
+                        </div>
+                        <div className="whitespace-pre-line">
+                          {message.correctedContent}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {message.role === "assistant" && (
                   <div className="flex items-center gap-2 mt-2">
