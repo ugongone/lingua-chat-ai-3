@@ -14,6 +14,9 @@ import {
   EyeOff,
   HelpCircle,
   CheckCircle,
+  Keyboard,
+  Send,
+  X,
 } from "lucide-react";
 
 interface Message {
@@ -46,26 +49,28 @@ export default function ChatUI() {
   const [autoPlayAudio, setAutoPlayAudio] = useState(false);
   const [autoBlurText, setAutoBlurText] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [showTextInput, setShowTextInput] = useState(false);
+  const [input, setInput] = useState("");
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
   const correctEnglish = async (text: string): Promise<string | null> => {
     try {
-      const response = await fetch('/api/correct-english', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text })
+      const response = await fetch("/api/correct-english", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
       });
 
       if (!response.ok) {
-        console.error('English correction failed:', response.status);
+        console.error("English correction failed:", response.status);
         return null;
       }
 
       const result = await response.json();
       return result.correctedText !== text ? result.correctedText : null;
     } catch (error) {
-      console.error('English correction error:', error);
+      console.error("English correction error:", error);
       return null;
     }
   };
@@ -106,8 +111,11 @@ export default function ChatUI() {
 
         // 英語の場合は修正処理を実行
         let correctedContent: string | undefined;
-        if (detectedLanguage === 'en' || result.text.match(/^[a-zA-Z\s.,!?'"]+$/)) {
-          correctedContent = await correctEnglish(result.text) || undefined;
+        if (
+          detectedLanguage === "en" ||
+          result.text.match(/^[a-zA-Z\s.,!?'"]+$/)
+        ) {
+          correctedContent = (await correctEnglish(result.text)) || undefined;
         }
 
         // 認識されたテキストでメッセージを作成
@@ -294,6 +302,37 @@ export default function ChatUI() {
     navigator.clipboard.writeText(content);
   };
 
+  const handleSend = async () => {
+    if (!input.trim()) return;
+
+    // ユーザーメッセージを作成
+    const newMessage: Message = {
+      id: Date.now().toString(),
+      role: "user",
+      content: input.trim(),
+      timestamp: new Date().toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      }),
+    };
+
+    setMessages((prev) => [...prev, newMessage]);
+    const userInput = input.trim();
+    setInput(""); // 入力をクリア
+    setShowTextInput(false); // テキスト入力エリアを非表示
+
+    // AI応答を生成（既存関数を再利用）
+    await generateAIResponse(userInput);
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
   return (
     <div className="flex flex-col h-screen max-w-4xl mx-auto bg-white">
       {/* Chat Messages */}
@@ -378,6 +417,69 @@ export default function ChatUI() {
       {/* Voice Input Area */}
       <div className="border-t bg-white p-6">
         <div className="flex justify-center items-center">
+          {/* Left side - Text input button */}
+          <div className="absolute left-6">
+            <div className="relative">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-10 w-10 p-0 bg-transparent"
+                onClick={() => setShowTextInput(!showTextInput)}
+              >
+                <Keyboard className="h-4 w-4" />
+              </Button>
+              {showTextInput && (
+                <div className="absolute bottom-16 left-0 mb-2 p-4 bg-white border border-gray-200 rounded-lg shadow-lg w-80 z-10">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-700">
+                        テキスト入力
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0"
+                        onClick={() => setShowTextInput(false)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <textarea
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                      onKeyDown={handleKeyPress}
+                      placeholder="メッセージを入力してください..."
+                      className="w-full p-2 border border-gray-300 rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      rows={3}
+                      autoFocus
+                    />
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowTextInput(false)}
+                      >
+                        キャンセル
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={handleSend}
+                        disabled={!input.trim()}
+                        className="bg-blue-500 hover:bg-blue-600"
+                      >
+                        <Send className="h-4 w-4 mr-1" />
+                        送信
+                      </Button>
+                    </div>
+                  </div>
+                  {/* Arrow pointing down */}
+                  <div className="absolute -bottom-2 left-4 w-4 h-4 bg-white border-r border-b border-gray-200 transform rotate-45"></div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Center - Mic button */}
           <Button
             onClick={handleVoiceInput}
             variant={isRecording ? "destructive" : "default"}
@@ -395,6 +497,7 @@ export default function ChatUI() {
             )}
           </Button>
 
+          {/* Right side - Settings buttons */}
           <div className="absolute right-0 flex items-center gap-2">
             <Button
               variant={autoPlayAudio ? "default" : "outline"}

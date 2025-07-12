@@ -1,5 +1,6 @@
 ## Before Coding
 
+- 思考は日本語で出力すること
 - 必ず "Plan → Reasoning → Code" の順で進行すること
 - /apps/docs/guide/0000-adr-template.mdの内容を参考に、/apps/docs/adr/ 配下に機能追加の設計書を作成すること
 
