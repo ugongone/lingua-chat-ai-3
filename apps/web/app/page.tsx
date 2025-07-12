@@ -306,7 +306,7 @@ export default function ChatUI() {
     if (!input.trim()) return;
 
     const userInput = input.trim();
-    
+
     // 英語の場合は修正処理を実行
     let correctedContent: string | undefined;
     if (userInput.match(/^[a-zA-Z\s.,!?'"]+$/)) {
@@ -382,13 +382,8 @@ export default function ChatUI() {
                   <div className="mt-2 rounded-lg p-3 bg-green-50 border border-green-200 text-green-800 text-sm max-w-full">
                     <div className="flex items-start gap-2">
                       <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                      <div>
-                        <div className="font-medium text-green-700 mb-1">
-                          修正版:
-                        </div>
-                        <div className="whitespace-pre-line">
-                          {message.correctedContent}
-                        </div>
+                      <div className="whitespace-pre-line">
+                        {message.correctedContent}
                       </div>
                     </div>
                   </div>
