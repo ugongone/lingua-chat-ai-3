@@ -24,6 +24,7 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   correctedContent?: string;
+  translatedContent?: string;
   timestamp: string;
 }
 
@@ -75,6 +76,34 @@ export default function ChatUI() {
     }
   };
 
+  const translateToEnglish = async (text: string): Promise<string | null> => {
+    try {
+      const response = await fetch("/api/translate-to-english", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+
+      if (!response.ok) {
+        console.error(
+          "Japanese to English translation failed:",
+          response.status
+        );
+        return null;
+      }
+
+      const result = await response.json();
+      return result.translatedText || null;
+    } catch (error) {
+      console.error("Japanese to English translation error:", error);
+      return null;
+    }
+  };
+
+  const isJapanese = (text: string): boolean => {
+    return /[ひらがなカタカナ一-龯]/.test(text);
+  };
+
   const transcribeAudio = async (
     audioBlob: Blob,
     filename: string = "recording.wav"
@@ -109,13 +138,18 @@ export default function ChatUI() {
         // 検出された言語を保存
         setDetectedLanguage(result.language || "");
 
-        // 英語の場合は修正処理を実行
+        // 英語の場合は修正処理、日本語の場合は英訳処理を実行
         let correctedContent: string | undefined;
+        let translatedContent: string | undefined;
+
         if (
           detectedLanguage === "en" ||
           result.text.match(/^[a-zA-Z\s.,!?'"]+$/)
         ) {
           correctedContent = (await correctEnglish(result.text)) || undefined;
+        } else if (isJapanese(result.text)) {
+          translatedContent =
+            (await translateToEnglish(result.text)) || undefined;
         }
 
         // 認識されたテキストでメッセージを作成
@@ -124,6 +158,7 @@ export default function ChatUI() {
           role: "user",
           content: result.text,
           correctedContent,
+          translatedContent,
           timestamp: new Date().toLocaleTimeString([], {
             hour: "2-digit",
             minute: "2-digit",
@@ -307,10 +342,14 @@ export default function ChatUI() {
 
     const userInput = input.trim();
 
-    // 英語の場合は修正処理を実行
+    // 英語の場合は修正処理、日本語の場合は英訳処理を実行
     let correctedContent: string | undefined;
+    let translatedContent: string | undefined;
+
     if (userInput.match(/^[a-zA-Z\s.,!?'"]+$/)) {
       correctedContent = (await correctEnglish(userInput)) || undefined;
+    } else if (isJapanese(userInput)) {
+      translatedContent = (await translateToEnglish(userInput)) || undefined;
     }
 
     // ユーザーメッセージを作成
@@ -318,7 +357,8 @@ export default function ChatUI() {
       id: Date.now().toString(),
       role: "user",
       content: userInput,
-      correctedContent, // 修正版を含める
+      correctedContent,
+      translatedContent,
       timestamp: new Date().toLocaleTimeString([], {
         hour: "2-digit",
         minute: "2-digit",
@@ -384,6 +424,18 @@ export default function ChatUI() {
                       <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
                       <div className="whitespace-pre-line">
                         {message.correctedContent}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 日本語の英訳表示 */}
+                {message.role === "user" && message.translatedContent && (
+                  <div className="mt-2 rounded-lg p-3 bg-green-50 border border-green-200 text-green-800 text-sm max-w-full">
+                    <div className="flex items-start gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                      <div className="whitespace-pre-line">
+                        {message.translatedContent}
                       </div>
                     </div>
                   </div>
