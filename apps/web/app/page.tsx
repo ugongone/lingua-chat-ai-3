@@ -168,8 +168,8 @@ export default function ChatUI() {
 
         setMessages((prev) => [...prev, newMessage]);
 
-        // AI応答を生成
-        await generateAIResponse(result.text);
+        // AI応答を生成（日本語の場合は英訳を使用）
+        await generateAIResponse(translatedContent || result.text);
       }
     } catch (error) {
       console.error("Transcription error:", error);
@@ -370,8 +370,8 @@ export default function ChatUI() {
     setInput(""); // 入力をクリア
     setShowTextInput(false); // テキスト入力エリアを非表示
 
-    // AI応答を生成（既存関数を再利用）
-    await generateAIResponse(userInput);
+    // AI応答を生成（日本語の場合は英訳を使用）
+    await generateAIResponse(translatedContent || userInput);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
