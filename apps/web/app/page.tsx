@@ -52,6 +52,7 @@ export default function ChatUI() {
   const [showHelp, setShowHelp] = useState(false);
   const [showTextInput, setShowTextInput] = useState(false);
   const [input, setInput] = useState("");
+  const [isPlaying, setIsPlaying] = useState<Record<string, boolean>>({});
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
@@ -328,13 +329,44 @@ export default function ChatUI() {
     }
   };
 
-  const handlePlayAudio = (messageId: string) => {
-    // Audio playback logic would go here
-    console.log("Playing audio for message:", messageId);
-  };
 
   const handleCopy = (content: string) => {
     navigator.clipboard.writeText(content);
+  };
+
+  const handleTextToSpeech = async (messageId: string, text: string) => {
+    try {
+      setIsPlaying(prev => ({ ...prev, [messageId]: true }));
+      
+      const response = await fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      });
+
+      if (!response.ok) {
+        throw new Error('TTS request failed');
+      }
+      
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
+      
+      audio.onended = () => {
+        setIsPlaying(prev => ({ ...prev, [messageId]: false }));
+        URL.revokeObjectURL(audioUrl);
+      };
+
+      audio.onerror = () => {
+        setIsPlaying(prev => ({ ...prev, [messageId]: false }));
+        URL.revokeObjectURL(audioUrl);
+      };
+      
+      await audio.play();
+    } catch (error) {
+      console.error('TTS error:', error);
+      setIsPlaying(prev => ({ ...prev, [messageId]: false }));
+    }
   };
 
   const handleSend = async () => {
@@ -455,9 +487,14 @@ export default function ChatUI() {
                       variant="ghost"
                       size="sm"
                       className="h-8 w-8 p-0 hover:bg-gray-100"
-                      onClick={() => handlePlayAudio(message.id)}
+                      onClick={() => handleTextToSpeech(message.id, message.content)}
+                      disabled={isPlaying[message.id]}
                     >
-                      <Volume2 className="h-4 w-4" />
+                      {isPlaying[message.id] ? (
+                        <VolumeX className="h-4 w-4" />
+                      ) : (
+                        <Volume2 className="h-4 w-4" />
+                      )}
                     </Button>
                   </div>
                 )}
