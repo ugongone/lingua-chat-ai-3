@@ -2,7 +2,12 @@
 
 - 思考は日本語で出力すること
 - 必ず "Plan → Reasoning → Code" の順で進行すること
-- /apps/docs/guide/0000-adr-template.mdの内容を参考に、/apps/docs/adr/ 配下に機能追加の設計書を作成すること
+- /apps/docs/adr/ 配下に機能追加の設計書(adr)を作成すること
+  - /apps/docs/guide/0000-adr-template.mdの内容を参考にすること
+
+## After Coding
+
+- 実装内容と、adrに差分があれば、adrを修正すること
 
 ## Todo
 

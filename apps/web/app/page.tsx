@@ -305,11 +305,20 @@ export default function ChatUI() {
   const handleSend = async () => {
     if (!input.trim()) return;
 
+    const userInput = input.trim();
+    
+    // 英語の場合は修正処理を実行
+    let correctedContent: string | undefined;
+    if (userInput.match(/^[a-zA-Z\s.,!?'"]+$/)) {
+      correctedContent = (await correctEnglish(userInput)) || undefined;
+    }
+
     // ユーザーメッセージを作成
     const newMessage: Message = {
       id: Date.now().toString(),
       role: "user",
-      content: input.trim(),
+      content: userInput,
+      correctedContent, // 修正版を含める
       timestamp: new Date().toLocaleTimeString([], {
         hour: "2-digit",
         minute: "2-digit",
@@ -318,7 +327,6 @@ export default function ChatUI() {
     };
 
     setMessages((prev) => [...prev, newMessage]);
-    const userInput = input.trim();
     setInput(""); // 入力をクリア
     setShowTextInput(false); // テキスト入力エリアを非表示
 
