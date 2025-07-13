@@ -18,7 +18,13 @@ export async function POST(request: NextRequest) {
 
     const completion = await client.chat.completions.create({
       model: "gpt-4o-mini",
-      messages: messages,
+      messages: [
+        {
+          role: "system",
+          content: "You are an English tutor. Please answer in ≤3 short sentences (≈45 words)"
+        },
+        ...messages
+      ],
       temperature: 0.7,
       max_tokens: 1000,
     });
