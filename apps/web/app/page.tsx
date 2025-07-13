@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { CorrectionDisplay } from "@/components/ui/correction-display";
 import {
@@ -49,6 +49,8 @@ export default function ChatUI() {
   const [isAIResponding, setIsAIResponding] = useState(false);
   const [detectedLanguage, setDetectedLanguage] = useState<string>("");
   const [autoPlayAudio, setAutoPlayAudio] = useState(false);
+  const autoPlayedMessagesRef = useRef<Set<string>>(new Set());
+  const autoPlayStartTimeRef = useRef<number | null>(null);
   const [autoBlurText, setAutoBlurText] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showTextInput, setShowTextInput] = useState(false);
@@ -431,6 +433,48 @@ export default function ChatUI() {
       setIsPlaying((prev) => ({ ...prev, [messageId]: false }));
     }
   };
+
+  // Track when auto-play is enabled
+  useEffect(() => {
+    if (autoPlayAudio && autoPlayStartTimeRef.current === null) {
+      autoPlayStartTimeRef.current = Date.now();
+    } else if (!autoPlayAudio) {
+      autoPlayStartTimeRef.current = null;
+      autoPlayedMessagesRef.current.clear();
+    }
+  }, [autoPlayAudio]);
+
+  // Auto-play TTS for AI responses when autoPlayAudio is enabled
+  useEffect(() => {
+    if (!autoPlayAudio || messages.length === 0 || autoPlayStartTimeRef.current === null) return;
+
+    const lastMessage = messages[messages.length - 1];
+    
+    // Check if the last message is from assistant, not already playing, and not already auto-played
+    if (
+      lastMessage && 
+      lastMessage.role === "assistant" && 
+      !isPlaying[lastMessage.id] &&
+      !autoPlayedMessagesRef.current.has(lastMessage.id)
+    ) {
+      // Since message ID is Date.now().toString(), we can compare numerically
+      const messageId = Number.parseInt(lastMessage.id);
+      const autoPlayStartTime = autoPlayStartTimeRef.current;
+      
+      // Only auto-play if message was created after auto-play was enabled
+      if (messageId >= autoPlayStartTime) {
+        // Mark this message as auto-played to prevent duplicate playback
+        autoPlayedMessagesRef.current.add(lastMessage.id);
+        
+        // Add a small delay to ensure message is rendered
+        const timer = setTimeout(() => {
+          handleTextToSpeech(lastMessage.id, lastMessage.content);
+        }, 500);
+
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [messages, autoPlayAudio, isPlaying]);
 
   const handleSend = async () => {
     if (!input.trim()) return;
