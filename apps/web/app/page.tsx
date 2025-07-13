@@ -373,6 +373,10 @@ export default function ChatUI() {
     if (!input.trim()) return;
 
     const userInput = input.trim();
+    
+    // 即座にUI更新（フォーム閉じる・入力クリア）
+    setInput("");
+    setShowTextInput(false);
 
     // 英語の場合は修正処理、日本語の場合は英訳処理を実行
     let correctedContent: string | undefined;
@@ -399,8 +403,6 @@ export default function ChatUI() {
     };
 
     setMessages((prev) => [...prev, newMessage]);
-    setInput(""); // 入力をクリア
-    setShowTextInput(false); // テキスト入力エリアを非表示
 
     // AI応答を生成（日本語の場合は英訳を使用）
     await generateAIResponse(translatedContent || userInput);
