@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { CorrectionDisplay } from "@/components/ui/correction-display";
 import {
@@ -57,8 +57,16 @@ export default function ChatUI() {
   const [bookmarkedMessages, setBookmarkedMessages] = useState<Set<string>>(
     new Set()
   );
+  // テキスト選択・翻訳機能の状態
+  const [selectedText, setSelectedText] = useState("");
+  const [translationPosition, setTranslationPosition] = useState({ x: 0, y: 0 });
+  const [showTranslation, setShowTranslation] = useState(false);
+  const [isSelecting, setIsSelecting] = useState(false);
+  const [touchStartTime, setTouchStartTime] = useState(0);
+  const [isLongPress, setIsLongPress] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const longPressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const correctEnglish = async (text: string): Promise<string | null> => {
     try {
@@ -107,6 +115,11 @@ export default function ChatUI() {
 
   const isJapanese = (text: string): boolean => {
     return /[ひらがなカタカナ一-龯]/.test(text);
+  };
+
+  // 簡易翻訳機能
+  const getTranslation = (_text: string) => {
+    return "日本語が表示されます";
   };
 
   const transcribeAudio = async (
@@ -431,8 +444,199 @@ export default function ChatUI() {
     console.log("Bookmarking corrected content:", content);
   };
 
+  // タッチイベントハンドラー（スマホ用）
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    setTouchStartTime(Date.now());
+    setIsSelecting(true);
+    setShowTranslation(false);
+    setIsLongPress(false);
+
+    // 長押し検知のタイマーを設定（500msに短縮）
+    longPressTimeoutRef.current = setTimeout(() => {
+      setIsLongPress(true);
+    }, 500);
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    // 移動中は長押しタイマーをクリア
+    if (longPressTimeoutRef.current) {
+      clearTimeout(longPressTimeoutRef.current);
+      longPressTimeoutRef.current = null;
+    }
+  }, []);
+
+  const handleTouchEnd = useCallback(
+    (e: React.TouchEvent) => {
+      const touchDuration = Date.now() - touchStartTime;
+
+      // 長押しタイマーをクリア
+      if (longPressTimeoutRef.current) {
+        clearTimeout(longPressTimeoutRef.current);
+        longPressTimeoutRef.current = null;
+      }
+
+      const selection = window.getSelection();
+      if (selection && selection.toString().trim()) {
+        const selectedText = selection.toString().trim();
+        const range = selection.getRangeAt(0);
+        const rect = range.getBoundingClientRect();
+
+        setSelectedText(selectedText);
+        
+        // ポップアップの位置を画面端で調整
+        const popupWidth = 200; // ポップアップの幅の推定値
+        let x = rect.left + rect.width / 2;
+        let y = rect.top - 10;
+        
+        // 左端での調整
+        if (x - popupWidth / 2 < 10) {
+          x = popupWidth / 2 + 10;
+        }
+        // 右端での調整
+        if (x + popupWidth / 2 > window.innerWidth - 10) {
+          x = window.innerWidth - popupWidth / 2 - 10;
+        }
+        // 上端での調整
+        if (y < 50) {
+          y = rect.bottom + 30;
+        }
+        
+        setTranslationPosition({ x, y });
+
+        // 長押しまたは一定時間選択していた場合に翻訳を表示
+        if (isLongPress || touchDuration > 800) {
+          setShowTranslation(true);
+        }
+      }
+
+      setIsSelecting(false);
+      setIsLongPress(false);
+    },
+    [touchStartTime, isLongPress]
+  );
+
+  // マウスイベント（PC用）
+  const handleMouseDown = useCallback(() => {
+    setIsSelecting(true);
+    setShowTranslation(false);
+  }, []);
+
+  const handleMouseUp = useCallback((e: React.MouseEvent) => {
+    const selection = window.getSelection();
+    if (selection && selection.toString().trim()) {
+      const selectedText = selection.toString().trim();
+      const range = selection.getRangeAt(0);
+      const rect = range.getBoundingClientRect();
+
+      setSelectedText(selectedText);
+      
+      // ポップアップの位置を画面端で調整
+      const popupWidth = 200;
+      let x = rect.left + rect.width / 2;
+      let y = rect.top - 10;
+      
+      if (x - popupWidth / 2 < 10) {
+        x = popupWidth / 2 + 10;
+      }
+      if (x + popupWidth / 2 > window.innerWidth - 10) {
+        x = window.innerWidth - popupWidth / 2 - 10;
+      }
+      if (y < 50) {
+        y = rect.bottom + 30;
+      }
+      
+      setTranslationPosition({ x, y });
+      setShowTranslation(true);
+    }
+    setIsSelecting(false);
+  }, []);
+
+  const handleBackgroundClick = useCallback(() => {
+    setShowTranslation(false);
+  }, []);
+
   return (
-    <div className="flex flex-col h-screen max-w-4xl mx-auto bg-white">
+    <div className="flex flex-col h-screen max-w-4xl mx-auto bg-white" onClick={handleBackgroundClick}>
+      <style jsx>{`
+        .message-content::selection {
+          background-color: rgba(59, 130, 246, 0.3);
+          color: inherit;
+        }
+        
+        .message-content::-moz-selection {
+          background-color: rgba(59, 130, 246, 0.3);
+          color: inherit;
+        }
+        
+        .ai-message-content::selection {
+          background-color: rgba(16, 185, 129, 0.3);
+          color: inherit;
+        }
+        
+        .ai-message-content::-moz-selection {
+          background-color: rgba(16, 185, 129, 0.3);
+          color: inherit;
+        }
+        
+        .correction-content::selection {
+          background-color: rgba(245, 158, 11, 0.3);
+          color: inherit;
+        }
+        
+        .correction-content::-moz-selection {
+          background-color: rgba(245, 158, 11, 0.3);
+          color: inherit;
+        }
+        
+        .selectable-text {
+          cursor: text;
+          transition: all 0.2s ease;
+          -webkit-user-select: text;
+          -moz-user-select: text;
+          -ms-user-select: text;
+          user-select: text;
+          -webkit-touch-callout: none;
+        }
+        
+        .selectable-text:hover {
+          background-color: rgba(59, 130, 246, 0.05);
+        }
+        
+        .selecting {
+          background-color: rgba(59, 130, 246, 0.1);
+          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+          transition: all 0.2s ease;
+        }
+        
+        .long-press-feedback {
+          background-color: rgba(59, 130, 246, 0.2);
+          transform: scale(1.02);
+          transition: all 0.3s ease;
+        }
+        
+        .translation-popup {
+          animation: fadeInUp 0.3s ease-out;
+        }
+        
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translate(-50%, -90%);
+          }
+          to {
+            opacity: 1;
+            transform: translate(-50%, -100%);
+          }
+        }
+        
+        /* モバイル向けのタッチ最適化 */
+        @media (max-width: 768px) {
+          .selectable-text {
+            -webkit-tap-highlight-color: rgba(59, 130, 246, 0.2);
+            tap-highlight-color: rgba(59, 130, 246, 0.2);
+          }
+        }
+      `}</style>
       {/* Chat Messages */}
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
         {messages.map((message) => (
@@ -458,13 +662,26 @@ export default function ChatUI() {
                 </div>
 
                 <div
-                  className={`rounded-lg p-4 ${
+                  className={`rounded-lg p-4 selectable-text ${
                     message.role === "user"
                       ? "bg-blue-500 text-white"
                       : "bg-gray-50 text-gray-900"
-                  } ${message.role === "assistant" && autoBlurText ? "blur-sm hover:blur-none transition-all duration-200" : ""}`}
+                  } ${message.role === "assistant" && autoBlurText ? "blur-sm hover:blur-none transition-all duration-200" : ""}
+                  ${isSelecting ? "selecting" : ""} ${isLongPress ? "long-press-feedback" : ""}`}
+                  onTouchStart={handleTouchStart}
+                  onTouchMove={handleTouchMove}
+                  onTouchEnd={handleTouchEnd}
+                  onMouseDown={handleMouseDown}
+                  onMouseUp={handleMouseUp}
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  <div className="whitespace-pre-line">{message.content}</div>
+                  <div
+                    className={`whitespace-pre-line select-text ${
+                      message.role === "user" ? "message-content" : "ai-message-content"
+                    }`}
+                  >
+                    {message.content}
+                  </div>
                 </div>
 
                 {/* 修正された英語の表示 */}
@@ -757,6 +974,23 @@ export default function ChatUI() {
           </p>
         )}
       </div>
+
+      {/* Translation Popup */}
+      {showTranslation && (
+        <div
+          className="fixed bg-gray-900 text-white text-sm px-3 py-2 rounded-lg shadow-xl z-20 pointer-events-none translation-popup max-w-xs"
+          style={{
+            left: translationPosition.x,
+            top: translationPosition.y,
+            transform: "translate(-50%, -100%)",
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="font-medium text-center">{getTranslation(selectedText)}</div>
+          {/* Arrow pointing down */}
+          <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-900 rotate-45"></div>
+        </div>
+      )}
     </div>
   );
 }
