@@ -4,6 +4,7 @@ import type React from "react";
 
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
+import { CorrectionDisplay } from "@/components/ui/correction-display";
 import {
   Copy,
   Volume2,
@@ -13,10 +14,10 @@ import {
   Eye,
   EyeOff,
   HelpCircle,
-  CheckCircle,
   Keyboard,
   Send,
   X,
+  Bookmark,
 } from "lucide-react";
 
 interface Message {
@@ -53,6 +54,9 @@ export default function ChatUI() {
   const [showTextInput, setShowTextInput] = useState(false);
   const [input, setInput] = useState("");
   const [isPlaying, setIsPlaying] = useState<Record<string, boolean>>({});
+  const [bookmarkedMessages, setBookmarkedMessages] = useState<Set<string>>(
+    new Set()
+  );
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
@@ -329,43 +333,42 @@ export default function ChatUI() {
     }
   };
 
-
   const handleCopy = (content: string) => {
     navigator.clipboard.writeText(content);
   };
 
   const handleTextToSpeech = async (messageId: string, text: string) => {
     try {
-      setIsPlaying(prev => ({ ...prev, [messageId]: true }));
-      
-      const response = await fetch('/api/tts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      setIsPlaying((prev) => ({ ...prev, [messageId]: true }));
+
+      const response = await fetch("/api/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text }),
       });
 
       if (!response.ok) {
-        throw new Error('TTS request failed');
+        throw new Error("TTS request failed");
       }
-      
+
       const audioBlob = await response.blob();
       const audioUrl = URL.createObjectURL(audioBlob);
       const audio = new Audio(audioUrl);
-      
+
       audio.onended = () => {
-        setIsPlaying(prev => ({ ...prev, [messageId]: false }));
+        setIsPlaying((prev) => ({ ...prev, [messageId]: false }));
         URL.revokeObjectURL(audioUrl);
       };
 
       audio.onerror = () => {
-        setIsPlaying(prev => ({ ...prev, [messageId]: false }));
+        setIsPlaying((prev) => ({ ...prev, [messageId]: false }));
         URL.revokeObjectURL(audioUrl);
       };
-      
+
       await audio.play();
     } catch (error) {
-      console.error('TTS error:', error);
-      setIsPlaying(prev => ({ ...prev, [messageId]: false }));
+      console.error("TTS error:", error);
+      setIsPlaying((prev) => ({ ...prev, [messageId]: false }));
     }
   };
 
@@ -373,7 +376,7 @@ export default function ChatUI() {
     if (!input.trim()) return;
 
     const userInput = input.trim();
-    
+
     // 即座にUI更新（フォーム閉じる・入力クリア）
     setInput("");
     setShowTextInput(false);
@@ -415,6 +418,19 @@ export default function ChatUI() {
     }
   };
 
+  const handleBookmark = (messageId: string, content: string) => {
+    setBookmarkedMessages((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(messageId)) {
+        newSet.delete(messageId);
+      } else {
+        newSet.add(messageId);
+      }
+      return newSet;
+    });
+    console.log("Bookmarking corrected content:", content);
+  };
+
   return (
     <div className="flex flex-col h-screen max-w-4xl mx-auto bg-white">
       {/* Chat Messages */}
@@ -453,26 +469,92 @@ export default function ChatUI() {
 
                 {/* 修正された英語の表示 */}
                 {message.role === "user" && message.correctedContent && (
-                  <div className="mt-2 rounded-lg p-3 bg-green-50 border border-green-200 text-green-800 text-sm max-w-full">
-                    <div className="flex items-start gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                      <div className="whitespace-pre-line">
-                        {message.correctedContent}
-                      </div>
+                  <>
+                    <CorrectionDisplay
+                      content={message.correctedContent}
+                      type="correction"
+                    />
+                    <div className="flex items-center gap-2 mt-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 hover:bg-gray-100"
+                        onClick={() => handleCopy(message.correctedContent!)}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 hover:bg-gray-100"
+                        onClick={() =>
+                          handleTextToSpeech(
+                            message.id,
+                            message.correctedContent!
+                          )
+                        }
+                      >
+                        <Volume2 className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 hover:bg-gray-100"
+                        onClick={() =>
+                          handleBookmark(message.id, message.correctedContent!)
+                        }
+                      >
+                        <Bookmark
+                          className={`h-4 w-4 ${bookmarkedMessages.has(message.id) ? "text-red-500 fill-red-500" : ""}`}
+                        />
+                      </Button>
                     </div>
-                  </div>
+                  </>
                 )}
 
                 {/* 日本語の英訳表示 */}
                 {message.role === "user" && message.translatedContent && (
-                  <div className="mt-2 rounded-lg p-3 bg-green-50 border border-green-200 text-green-800 text-sm max-w-full">
-                    <div className="flex items-start gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                      <div className="whitespace-pre-line">
-                        {message.translatedContent}
-                      </div>
+                  <>
+                    <CorrectionDisplay
+                      content={message.translatedContent}
+                      type="translation"
+                    />
+                    <div className="flex items-center gap-2 mt-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 hover:bg-gray-100"
+                        onClick={() => handleCopy(message.translatedContent!)}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 hover:bg-gray-100"
+                        onClick={() =>
+                          handleTextToSpeech(
+                            message.id,
+                            message.translatedContent!
+                          )
+                        }
+                      >
+                        <Volume2 className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 hover:bg-gray-100"
+                        onClick={() =>
+                          handleBookmark(message.id, message.correctedContent!)
+                        }
+                      >
+                        <Bookmark
+                          className={`h-4 w-4 ${bookmarkedMessages.has(message.id) ? "text-red-500 fill-red-500" : ""}`}
+                        />
+                      </Button>
                     </div>
-                  </div>
+                  </>
                 )}
 
                 {message.role === "assistant" && (
@@ -489,7 +571,9 @@ export default function ChatUI() {
                       variant="ghost"
                       size="sm"
                       className="h-8 w-8 p-0 hover:bg-gray-100"
-                      onClick={() => handleTextToSpeech(message.id, message.content)}
+                      onClick={() =>
+                        handleTextToSpeech(message.id, message.content)
+                      }
                       disabled={isPlaying[message.id]}
                     >
                       {isPlaying[message.id] ? (
