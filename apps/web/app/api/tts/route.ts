@@ -1,6 +1,6 @@
 export async function POST(request: Request) {
   try {
-    const { text } = await request.json();
+    const { text, speed = 1.0 } = await request.json();
 
     if (!text) {
       return new Response('Text is required', { status: 400 });
@@ -16,6 +16,7 @@ export async function POST(request: Request) {
         model: 'tts-1-hd',
         voice: 'alloy',
         input: text,
+        speed: Math.max(0.25, Math.min(4.0, speed)),
       }),
     });
 

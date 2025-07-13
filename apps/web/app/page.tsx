@@ -57,6 +57,8 @@ export default function ChatUI() {
   const [bookmarkedMessages, setBookmarkedMessages] = useState<Set<string>>(
     new Set()
   );
+  const [playbackSpeed, setPlaybackSpeed] = useState(1.0);
+  const [showSpeedControl, setShowSpeedControl] = useState(false);
   // テキスト選択・翻訳機能の状態
   const [currentSelectedText, setCurrentSelectedText] = useState("");
   const [translationPosition, setTranslationPosition] = useState({
@@ -78,6 +80,8 @@ export default function ChatUI() {
   const audioChunksRef = useRef<Blob[]>([]);
   const longPressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const translationCache = useRef<Map<string, string>>(new Map());
+
+  const speedOptions = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
 
   const correctEnglish = async (text: string): Promise<string | null> => {
     try {
@@ -400,7 +404,7 @@ export default function ChatUI() {
       const response = await fetch("/api/tts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, speed: playbackSpeed }),
       });
 
       if (!response.ok) {
@@ -704,6 +708,39 @@ export default function ChatUI() {
             tap-highlight-color: rgba(59, 130, 246, 0.2);
           }
         }
+
+        .slider::-webkit-slider-thumb {
+          appearance: none;
+          height: 20px;
+          width: 20px;
+          border-radius: 50%;
+          background: #3b82f6;
+          cursor: pointer;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .slider::-moz-range-thumb {
+          height: 20px;
+          width: 20px;
+          border-radius: 50%;
+          background: #3b82f6;
+          cursor: pointer;
+          border: none;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .slider::-webkit-slider-track {
+          height: 8px;
+          border-radius: 4px;
+          background: #e5e7eb;
+        }
+
+        .slider::-moz-range-track {
+          height: 8px;
+          border-radius: 4px;
+          background: #e5e7eb;
+          border: none;
+        }
       `}</style>
       {/* Chat Messages */}
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
@@ -1006,6 +1043,14 @@ export default function ChatUI() {
                 <Eye className="h-4 w-4" />
               )}
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-10 w-10 p-0 bg-transparent"
+              onClick={() => setShowSpeedControl(!showSpeedControl)}
+            >
+              <span className="text-xs font-medium">{playbackSpeed}x</span>
+            </Button>
             <div className="relative">
               <Button
                 variant="ghost"
@@ -1062,6 +1107,30 @@ export default function ChatUI() {
           </p>
         )}
       </div>
+
+      {showSpeedControl && (
+        <div className="absolute bottom-16 right-0 mb-3 p-3 bg-white border border-gray-200 rounded-lg shadow-lg w-64 z-10">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-gray-700">読み上げ速度</span>
+              <span className="text-sm text-blue-600 font-medium">{playbackSpeed}x</span>
+            </div>
+            <div className="relative">
+              <input
+                type="range"
+                min="0"
+                max="6"
+                step="1"
+                value={speedOptions.indexOf(playbackSpeed)}
+                onChange={(e) => setPlaybackSpeed(speedOptions[Number.parseInt(e.target.value)] || 1.0)}
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+              />
+            </div>
+          </div>
+          {/* Arrow pointing down */}
+          <div className="absolute -bottom-2 right-12 w-4 h-4 bg-white border-r border-b border-gray-200 transform rotate-45"></div>
+        </div>
+      )}
 
       {/* Translation Popup */}
       {showTranslation && (
