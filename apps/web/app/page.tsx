@@ -58,12 +58,15 @@ export default function ChatUI() {
     new Set()
   );
   // テキスト選択・翻訳機能の状態
-  const [selectedText, setSelectedText] = useState("");
+  const [currentSelectedText, setCurrentSelectedText] = useState("");
   const [translationPosition, setTranslationPosition] = useState({
     x: 0,
     y: 0,
   });
   const [showTranslation, setShowTranslation] = useState(false);
+  const [translatedText, setTranslatedText] = useState<string>("");
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [translationError, setTranslationError] = useState<string | null>(null);
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(
     null
   );
@@ -74,6 +77,7 @@ export default function ChatUI() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const longPressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const translationCache = useRef<Map<string, string>>(new Map());
 
   const correctEnglish = async (text: string): Promise<string | null> => {
     try {
@@ -124,9 +128,41 @@ export default function ChatUI() {
     return /[ひらがなカタカナ一-龯]/.test(text);
   };
 
-  // 簡易翻訳機能
-  const getTranslation = (_text: string) => {
-    return "日本語が表示されます";
+  // OpenAI API を使った翻訳機能
+  const getTranslation = async (text: string): Promise<string> => {
+    try {
+      // キャッシュチェック
+      if (translationCache.current.has(text)) {
+        return translationCache.current.get(text)!;
+      }
+
+      setIsTranslating(true);
+      setTranslationError(null);
+
+      const response = await fetch("/api/translate-to-japanese", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Translation request failed");
+      }
+
+      const result = await response.json();
+      const translatedText = result.translatedText;
+
+      // キャッシュに保存
+      translationCache.current.set(text, translatedText);
+
+      return translatedText;
+    } catch (error) {
+      console.error("Translation error:", error);
+      setTranslationError("翻訳できませんでした");
+      return "翻訳エラー";
+    } finally {
+      setIsTranslating(false);
+    }
   };
 
   const transcribeAudio = async (
@@ -453,10 +489,13 @@ export default function ChatUI() {
 
   // タッチイベントハンドラー（スマホ用）
   const handleTouchStart = useCallback(
-    (messageId: string) => (e: React.TouchEvent) => {
+    (messageId: string) => (_e: React.TouchEvent) => {
       setTouchStartTime(Date.now());
       setSelectedMessageId(messageId);
       setShowTranslation(false);
+      setTranslatedText("");
+      setTranslationError(null);
+      setIsTranslating(false);
       setLongPressMessageId(null);
 
       // 長押し検知のタイマーを設定（500msに短縮）
@@ -467,7 +506,7 @@ export default function ChatUI() {
     []
   );
 
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+  const handleTouchMove = useCallback((_e: React.TouchEvent) => {
     // 移動中は長押しタイマーをクリア
     if (longPressTimeoutRef.current) {
       clearTimeout(longPressTimeoutRef.current);
@@ -476,7 +515,7 @@ export default function ChatUI() {
   }, []);
 
   const handleTouchEnd = useCallback(
-    (messageId: string) => (e: React.TouchEvent) => {
+    (messageId: string) => (_e: React.TouchEvent) => {
       const touchDuration = Date.now() - touchStartTime;
 
       // 長押しタイマーをクリア
@@ -491,7 +530,7 @@ export default function ChatUI() {
         const range = selection.getRangeAt(0);
         const rect = range.getBoundingClientRect();
 
-        setSelectedText(selectedText);
+        setCurrentSelectedText(selectedText);
 
         // ポップアップの位置を画面端で調整
         const popupWidth = 200; // ポップアップの幅の推定値
@@ -516,6 +555,8 @@ export default function ChatUI() {
         // 長押しまたは一定時間選択していた場合に翻訳を表示
         if (longPressMessageId === messageId || touchDuration > 800) {
           setShowTranslation(true);
+          // 翻訳を実行
+          getTranslation(selectedText).then(setTranslatedText);
         }
       }
 
@@ -530,19 +571,22 @@ export default function ChatUI() {
     (messageId: string) => () => {
       setSelectedMessageId(messageId);
       setShowTranslation(false);
+      setTranslatedText("");
+      setTranslationError(null);
+      setIsTranslating(false);
     },
     []
   );
 
   const handleMouseUp = useCallback(
-    (messageId: string) => (e: React.MouseEvent) => {
+    (_messageId: string) => (_e: React.MouseEvent) => {
       const selection = window.getSelection();
       if (selection && selection.toString().trim()) {
         const selectedText = selection.toString().trim();
         const range = selection.getRangeAt(0);
         const rect = range.getBoundingClientRect();
 
-        setSelectedText(selectedText);
+        setCurrentSelectedText(selectedText);
 
         // ポップアップの位置を画面端で調整
         const popupWidth = 200;
@@ -561,6 +605,8 @@ export default function ChatUI() {
 
         setTranslationPosition({ x, y });
         setShowTranslation(true);
+        // 翻訳を実行
+        getTranslation(selectedText).then(setTranslatedText);
       }
       setSelectedMessageId(null);
     },
@@ -569,6 +615,9 @@ export default function ChatUI() {
 
   const handleBackgroundClick = useCallback(() => {
     setShowTranslation(false);
+    setTranslatedText("");
+    setTranslationError(null);
+    setIsTranslating(false);
   }, []);
 
   return (
@@ -1026,7 +1075,13 @@ export default function ChatUI() {
           onClick={(e) => e.stopPropagation()}
         >
           <div className="font-medium text-center">
-            {getTranslation(selectedText)}
+            {isTranslating ? (
+              <span className="animate-pulse">翻訳中...</span>
+            ) : translationError ? (
+              <span className="text-red-300">{translationError}</span>
+            ) : (
+              translatedText || "翻訳結果が表示されます"
+            )}
           </div>
           {/* Arrow pointing down */}
           <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-900 rotate-45"></div>
