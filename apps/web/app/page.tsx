@@ -13,7 +13,6 @@ import {
   VolumeX,
   Eye,
   EyeOff,
-  HelpCircle,
   Keyboard,
   Send,
   X,
@@ -52,7 +51,6 @@ export default function ChatUI() {
   const autoPlayedMessagesRef = useRef<Set<string>>(new Set());
   const autoPlayStartTimeRef = useRef<number | null>(null);
   const [autoBlurText, setAutoBlurText] = useState(false);
-  const [showHelp, setShowHelp] = useState(false);
   const [showTextInput, setShowTextInput] = useState(false);
   const [input, setInput] = useState("");
   const [isPlaying, setIsPlaying] = useState<Record<string, boolean>>({});
@@ -61,6 +59,7 @@ export default function ChatUI() {
   );
   const [playbackSpeed, setPlaybackSpeed] = useState(1.0);
   const [showSpeedControl, setShowSpeedControl] = useState(false);
+  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   // テキスト選択・翻訳機能の状態
   const [currentSelectedText, setCurrentSelectedText] = useState("");
   const [translationPosition, setTranslationPosition] = useState({
@@ -785,6 +784,21 @@ export default function ChatUI() {
           background: #e5e7eb;
           border: none;
         }
+
+        .animate-slide-up {
+          animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
       `}</style>
       {/* Chat Messages */}
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
@@ -1061,70 +1075,49 @@ export default function ChatUI() {
             )}
           </Button>
 
-          {/* Right side - Settings buttons */}
-          <div className="absolute right-0 flex items-center gap-2">
-            <Button
-              variant={autoPlayAudio ? "default" : "outline"}
-              size="sm"
-              className="h-10 w-10 p-0"
-              onClick={() => setAutoPlayAudio(!autoPlayAudio)}
-            >
-              {autoPlayAudio ? (
-                <Volume2 className="h-4 w-4" />
-              ) : (
-                <VolumeX className="h-4 w-4" />
-              )}
-            </Button>
-            <Button
-              variant={autoBlurText ? "default" : "outline"}
-              size="sm"
-              className="h-10 w-10 p-0"
-              onClick={() => setAutoBlurText(!autoBlurText)}
-            >
-              {autoBlurText ? (
-                <EyeOff className="h-4 w-4" />
-              ) : (
-                <Eye className="h-4 w-4" />
-              )}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-10 w-10 p-0 bg-transparent"
-              onClick={() => setShowSpeedControl(!showSpeedControl)}
-            >
-              <span className="text-xs font-medium">{playbackSpeed}x</span>
-            </Button>
+          {/* Right side - Settings menu */}
+          <div className="absolute right-6 flex items-center">
             <div className="relative">
+              {/* Settings menu items - slide up animation */}
+              {showSettingsMenu && (
+                <div className="absolute bottom-12 right-0 flex flex-col gap-2 animate-slide-up">
+                  <Button
+                    variant={autoPlayAudio ? "default" : "outline"}
+                    size="sm"
+                    className="h-10 w-10 p-0 shadow-md"
+                    onClick={() => setAutoPlayAudio(!autoPlayAudio)}
+                  >
+                    {autoPlayAudio ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+                  </Button>
+                  <Button
+                    variant={autoBlurText ? "default" : "outline"}
+                    size="sm"
+                    className="h-10 w-10 p-0 shadow-md"
+                    onClick={() => setAutoBlurText(!autoBlurText)}
+                  >
+                    {autoBlurText ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-10 w-10 p-0 bg-white shadow-md"
+                    onClick={() => setShowSpeedControl(!showSpeedControl)}
+                  >
+                    <span className="text-xs font-medium">{playbackSpeed}x</span>
+                  </Button>
+                </div>
+              )}
+
+              {/* Main menu button */}
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
-                className="h-10 w-10 p-0 text-gray-500"
-                onClick={() => setShowHelp(!showHelp)}
+                className="h-10 w-10 p-0 bg-white"
+                onClick={() => setShowSettingsMenu(!showSettingsMenu)}
               >
-                <HelpCircle className="h-4 w-4" />
+                <span className="text-lg font-bold">⋯</span>
               </Button>
             </div>
-
-            {showHelp && (
-              <div className="absolute bottom-16 right-0 mb-2 p-3 bg-white border border-gray-200 rounded-lg shadow-lg text-sm text-gray-700 w-80 z-10">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Volume2 className="h-4 w-4" />
-                    <span>自動読み上げ: AIの回答を自動で音声再生します</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <EyeOff className="h-4 w-4" />
-                    <span>
-                      自動モザイク:
-                      AIの回答にぼかし効果をかけます（ホバーで解除）
-                    </span>
-                  </div>
-                </div>
-                {/* Arrow pointing down */}
-                <div className="absolute -bottom-2 right-4 w-4 h-4 bg-white border-r border-b border-gray-200 transform rotate-45"></div>
-              </div>
-            )}
           </div>
         </div>
         {isTranscribing && (
@@ -1153,8 +1146,8 @@ export default function ChatUI() {
       </div>
 
       {showSpeedControl && (
-        <div className="absolute bottom-16 right-0 mb-3 p-3 bg-white border border-gray-200 rounded-lg shadow-lg w-64 z-10">
-          <div className="space-y-2">
+        <div className="absolute bottom-16 right-20 mb-2 p-4 bg-white border border-gray-200 rounded-lg shadow-lg w-64 z-10">
+          <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-gray-700">読み上げ速度</span>
               <span className="text-sm text-blue-600 font-medium">{playbackSpeed}x</span>
@@ -1171,8 +1164,8 @@ export default function ChatUI() {
               />
             </div>
           </div>
-          {/* Arrow pointing down */}
-          <div className="absolute -bottom-2 right-12 w-4 h-4 bg-white border-r border-b border-gray-200 transform rotate-45"></div>
+          {/* Arrow pointing down - 右端に配置 */}
+          <div className="absolute -bottom-2 right-4 w-4 h-4 bg-white border-r border-b border-gray-200 rotate-45"></div>
         </div>
       )}
 
