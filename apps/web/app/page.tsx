@@ -5,6 +5,7 @@ import type React from "react";
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { CorrectionDisplay } from "@/components/ui/correction-display";
+import { PWAInstall } from "@/components/pwa-install";
 import {
   Copy,
   Volume2,
@@ -1193,6 +1194,9 @@ export default function ChatUI() {
           <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-900 rotate-45"></div>
         </div>
       )}
+      
+      {/* PWA Install Prompt */}
+      <PWAInstall />
     </div>
   );
 }
