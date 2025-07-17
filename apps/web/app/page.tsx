@@ -62,7 +62,6 @@ export default function ChatUI() {
   const [showSpeedControl, setShowSpeedControl] = useState(false);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   // テキスト選択・翻訳機能の状態
-  const [currentSelectedText, setCurrentSelectedText] = useState("");
   const [translationPosition, setTranslationPosition] = useState({
     x: 0,
     y: 0,
@@ -134,8 +133,16 @@ export default function ChatUI() {
     return /[ひらがなカタカナ一-龯]/.test(text);
   };
 
+  const isEnglish = (text: string): boolean => {
+    return /^[a-zA-Z\s.,!?'"0-9\-()]+$/.test(text);
+  };
+
+  const isSupportedLanguage = (detectedLang: string): boolean => {
+    return detectedLang === "ja" || detectedLang === "en";
+  };
+
   // OpenAI API を使った翻訳機能
-  const getTranslation = async (text: string): Promise<string> => {
+  const getTranslation = useCallback(async (text: string): Promise<string> => {
     try {
       // キャッシュチェック
       if (translationCache.current.has(text)) {
@@ -169,7 +176,7 @@ export default function ChatUI() {
     } finally {
       setIsTranslating(false);
     }
-  };
+  }, []);
 
   const transcribeAudio = async (
     audioBlob: Blob,
@@ -205,13 +212,29 @@ export default function ChatUI() {
         // 検出された言語を保存
         setDetectedLanguage(result.language || "");
 
+        // 言語チェック: 日本語・英語以外の場合はエラー表示
+        if (result.language && !isSupportedLanguage(result.language)) {
+          const errorMessage: Message = {
+            id: Date.now().toString(),
+            role: "assistant",
+            content: `申し訳ございません。現在は日本語と英語のみ対応しています。検出された言語: ${result.language}`,
+            timestamp: new Date().toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+              second: "2-digit",
+            }),
+          };
+          setMessages((prev) => [...prev, errorMessage]);
+          return;
+        }
+
         // 英語の場合は修正処理、日本語の場合は英訳処理を実行
         let correctedContent: string | undefined;
         let translatedContent: string | undefined;
 
         if (
-          detectedLanguage === "en" ||
-          result.text.match(/^[a-zA-Z\s.,!?'"]+$/)
+          result.language === "en" ||
+          isEnglish(result.text)
         ) {
           correctedContent = (await correctEnglish(result.text)) || undefined;
         } else if (isJapanese(result.text)) {
@@ -399,7 +422,7 @@ export default function ChatUI() {
     navigator.clipboard.writeText(content);
   };
 
-  const handleTextToSpeech = async (messageId: string, text: string) => {
+  const handleTextToSpeech = useCallback(async (messageId: string, text: string) => {
     try {
       setIsPlaying((prev) => ({ ...prev, [messageId]: true }));
 
@@ -432,7 +455,7 @@ export default function ChatUI() {
       console.error("TTS error:", error);
       setIsPlaying((prev) => ({ ...prev, [messageId]: false }));
     }
-  };
+  }, [playbackSpeed]);
 
   // Track when auto-play is enabled
   useEffect(() => {
@@ -479,7 +502,7 @@ export default function ChatUI() {
         return () => clearTimeout(timer);
       }
     }
-  }, [messages, autoPlayAudio, isPlaying]);
+  }, [messages, autoPlayAudio, isPlaying, handleTextToSpeech]);
 
   const handleSend = async () => {
     if (!input.trim()) return;
@@ -494,7 +517,7 @@ export default function ChatUI() {
     let correctedContent: string | undefined;
     let translatedContent: string | undefined;
 
-    if (userInput.match(/^[a-zA-Z\s.,!?'"]+$/)) {
+    if (isEnglish(userInput)) {
       correctedContent = (await correctEnglish(userInput)) || undefined;
     } else if (isJapanese(userInput)) {
       translatedContent = (await translateToEnglish(userInput)) || undefined;
@@ -542,7 +565,7 @@ export default function ChatUI() {
 
   // タッチイベントハンドラー（スマホ用）
   const handleTouchStart = useCallback(
-    (messageId: string) => (_e: React.TouchEvent) => {
+    (messageId: string) => () => {
       setTouchStartTime(Date.now());
       setSelectedMessageId(messageId);
       setShowTranslation(false);
@@ -559,7 +582,7 @@ export default function ChatUI() {
     []
   );
 
-  const handleTouchMove = useCallback((_e: React.TouchEvent) => {
+  const handleTouchMove = useCallback(() => {
     // 移動中は長押しタイマーをクリア
     if (longPressTimeoutRef.current) {
       clearTimeout(longPressTimeoutRef.current);
@@ -568,7 +591,7 @@ export default function ChatUI() {
   }, []);
 
   const handleTouchEnd = useCallback(
-    (messageId: string) => (_e: React.TouchEvent) => {
+    (messageId: string) => () => {
       const touchDuration = Date.now() - touchStartTime;
 
       // 長押しタイマーをクリア
@@ -582,8 +605,6 @@ export default function ChatUI() {
         const selectedText = selection.toString().trim();
         const range = selection.getRangeAt(0);
         const rect = range.getBoundingClientRect();
-
-        setCurrentSelectedText(selectedText);
 
         // スマホの選択ツールを避けるため、適度に上に表示
         setTranslationPosition({
@@ -602,7 +623,7 @@ export default function ChatUI() {
       setSelectedMessageId(null);
       setLongPressMessageId(null);
     },
-    [touchStartTime, longPressMessageId]
+    [touchStartTime, longPressMessageId, getTranslation]
   );
 
   // マウスイベント（PC用）
@@ -618,14 +639,12 @@ export default function ChatUI() {
   );
 
   const handleMouseUp = useCallback(
-    (_messageId: string) => (_e: React.MouseEvent) => {
+    () => () => {
       const selection = window.getSelection();
       if (selection && selection.toString().trim()) {
         const selectedText = selection.toString().trim();
         const range = selection.getRangeAt(0);
         const rect = range.getBoundingClientRect();
-
-        setCurrentSelectedText(selectedText);
 
         // PC用も同様に適度に上に表示
         setTranslationPosition({
@@ -638,7 +657,7 @@ export default function ChatUI() {
       }
       setSelectedMessageId(null);
     },
-    []
+    [getTranslation]
   );
 
   const handleBackgroundClick = useCallback(() => {
@@ -653,7 +672,7 @@ export default function ChatUI() {
       className="flex flex-col h-screen max-w-4xl mx-auto bg-white"
       onClick={handleBackgroundClick}
     >
-      <style jsx>{`
+      <style>{`
         .message-content::selection {
           background-color: rgba(59, 130, 246, 0.3);
           color: inherit;
@@ -832,7 +851,7 @@ export default function ChatUI() {
                   }
                   onMouseUp={
                     message.role === "assistant"
-                      ? handleMouseUp(message.id)
+                      ? handleMouseUp()
                       : undefined
                   }
                   onClick={(e) => e.stopPropagation()}

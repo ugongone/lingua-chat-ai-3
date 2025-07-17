@@ -52,15 +52,19 @@ export async function POST(request: NextRequest) {
     const transcription = await client.audio.transcriptions.create({
       file: audioFile,
       model: 'gpt-4o-transcribe',
-      // 言語を指定せず、自動検出を利用（日本語・英語両対応）
-      response_format: 'json', // gpt-4o-transcribeでサポートされている形式
+      // 言語を指定せず、自動検出を利用（多言語対応）
+      response_format: 'verbose_json', // 言語情報を含む詳細なレスポンス形式
       temperature: 0.2, // 一貫性を重視
     });
 
     console.log(`Transcription completed. Text: ${transcription.text}`);
+    console.log(`Detected language: ${transcription.language}`);
+    console.log(`Audio duration: ${transcription.duration} seconds`);
 
     return NextResponse.json({
       text: transcription.text,
+      language: transcription.language, // 検出された言語コード（es, ja, en など）
+      duration: transcription.duration, // 音声の長さ（秒）
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
