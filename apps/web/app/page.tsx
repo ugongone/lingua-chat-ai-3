@@ -446,26 +446,31 @@ export default function ChatUI() {
 
   // Auto-play TTS for AI responses when autoPlayAudio is enabled
   useEffect(() => {
-    if (!autoPlayAudio || messages.length === 0 || autoPlayStartTimeRef.current === null) return;
+    if (
+      !autoPlayAudio ||
+      messages.length === 0 ||
+      autoPlayStartTimeRef.current === null
+    )
+      return;
 
     const lastMessage = messages[messages.length - 1];
-    
+
     // Check if the last message is from assistant, not already playing, and not already auto-played
     if (
-      lastMessage && 
-      lastMessage.role === "assistant" && 
+      lastMessage &&
+      lastMessage.role === "assistant" &&
       !isPlaying[lastMessage.id] &&
       !autoPlayedMessagesRef.current.has(lastMessage.id)
     ) {
       // Since message ID is Date.now().toString(), we can compare numerically
       const messageId = Number.parseInt(lastMessage.id);
       const autoPlayStartTime = autoPlayStartTimeRef.current;
-      
+
       // Only auto-play if message was created after auto-play was enabled
       if (messageId >= autoPlayStartTime) {
         // Mark this message as auto-played to prevent duplicate playback
         autoPlayedMessagesRef.current.add(lastMessage.id);
-        
+
         // Add a small delay to ensure message is rendered
         const timer = setTimeout(() => {
           handleTextToSpeech(lastMessage.id, lastMessage.content);
@@ -580,25 +585,11 @@ export default function ChatUI() {
 
         setCurrentSelectedText(selectedText);
 
-        // ポップアップの位置を画面端で調整
-        const popupWidth = 200; // ポップアップの幅の推定値
-        let x = rect.left + rect.width / 2;
-        let y = rect.top - 10;
-
-        // 左端での調整
-        if (x - popupWidth / 2 < 10) {
-          x = popupWidth / 2 + 10;
-        }
-        // 右端での調整
-        if (x + popupWidth / 2 > window.innerWidth - 10) {
-          x = window.innerWidth - popupWidth / 2 - 10;
-        }
-        // 上端での調整
-        if (y < 50) {
-          y = rect.bottom + 30;
-        }
-
-        setTranslationPosition({ x, y });
+        // スマホの選択ツールを避けるため、適度に上に表示
+        setTranslationPosition({
+          x: rect.left + rect.width / 2,
+          y: rect.top - 30, // 適切な位置に調整
+        });
 
         // 長押しまたは一定時間選択していた場合に翻訳を表示
         if (longPressMessageId === messageId || touchDuration > 800) {
@@ -636,22 +627,11 @@ export default function ChatUI() {
 
         setCurrentSelectedText(selectedText);
 
-        // ポップアップの位置を画面端で調整
-        const popupWidth = 200;
-        let x = rect.left + rect.width / 2;
-        let y = rect.top - 10;
-
-        if (x - popupWidth / 2 < 10) {
-          x = popupWidth / 2 + 10;
-        }
-        if (x + popupWidth / 2 > window.innerWidth - 10) {
-          x = window.innerWidth - popupWidth / 2 - 10;
-        }
-        if (y < 50) {
-          y = rect.bottom + 30;
-        }
-
-        setTranslationPosition({ x, y });
+        // PC用も同様に適度に上に表示
+        setTranslationPosition({
+          x: rect.left + rect.width / 2,
+          y: rect.top - 30, // 適切な位置に調整
+        });
         setShowTranslation(true);
         // 翻訳を実行
         getTranslation(selectedText).then(setTranslatedText);
@@ -1088,7 +1068,11 @@ export default function ChatUI() {
                     className="h-10 w-10 p-0 shadow-md"
                     onClick={() => setAutoPlayAudio(!autoPlayAudio)}
                   >
-                    {autoPlayAudio ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+                    {autoPlayAudio ? (
+                      <Volume2 className="h-4 w-4" />
+                    ) : (
+                      <VolumeX className="h-4 w-4" />
+                    )}
                   </Button>
                   <Button
                     variant={autoBlurText ? "default" : "outline"}
@@ -1096,7 +1080,11 @@ export default function ChatUI() {
                     className="h-10 w-10 p-0 shadow-md"
                     onClick={() => setAutoBlurText(!autoBlurText)}
                   >
-                    {autoBlurText ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {autoBlurText ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
                   </Button>
                   <Button
                     variant="outline"
@@ -1104,7 +1092,9 @@ export default function ChatUI() {
                     className="h-10 w-10 p-0 bg-white shadow-md"
                     onClick={() => setShowSpeedControl(!showSpeedControl)}
                   >
-                    <span className="text-xs font-medium">{playbackSpeed}x</span>
+                    <span className="text-xs font-medium">
+                      {playbackSpeed}x
+                    </span>
                   </Button>
                 </div>
               )}
@@ -1150,8 +1140,12 @@ export default function ChatUI() {
         <div className="absolute bottom-16 right-20 mb-2 p-4 bg-white border border-gray-200 rounded-lg shadow-lg w-64 z-10">
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-700">読み上げ速度</span>
-              <span className="text-sm text-blue-600 font-medium">{playbackSpeed}x</span>
+              <span className="text-sm font-medium text-gray-700">
+                読み上げ速度
+              </span>
+              <span className="text-sm text-blue-600 font-medium">
+                {playbackSpeed}x
+              </span>
             </div>
             <div className="relative">
               <input
@@ -1160,7 +1154,11 @@ export default function ChatUI() {
                 max="6"
                 step="1"
                 value={speedOptions.indexOf(playbackSpeed)}
-                onChange={(e) => setPlaybackSpeed(speedOptions[Number.parseInt(e.target.value)] || 1.0)}
+                onChange={(e) =>
+                  setPlaybackSpeed(
+                    speedOptions[Number.parseInt(e.target.value)] || 1.0
+                  )
+                }
                 className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
               />
             </div>
@@ -1194,7 +1192,7 @@ export default function ChatUI() {
           <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-900 rotate-45"></div>
         </div>
       )}
-      
+
       {/* PWA Install Prompt */}
       <PWAInstall />
     </div>
