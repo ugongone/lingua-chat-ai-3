@@ -17,13 +17,14 @@ export async function POST(request: NextRequest) {
     }
 
     const completion = await client.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4.1",
       messages: [
         {
           role: "system",
-          content: "You are an English tutor. Please answer in ≤3 short sentences (≈45 words)"
+          content:
+            "You are an English tutor. Please answer in ≤3 short sentences (≈45 words)",
         },
-        ...messages
+        ...messages,
       ],
       temperature: 0.7,
       max_tokens: 1000,
