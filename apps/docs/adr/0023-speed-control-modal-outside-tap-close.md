@@ -22,39 +22,72 @@
 
 ## 実装詳細 / Implementation Notes
 
-### 1. 外部タップ検出レイヤーの追加
+### 1. 外部タップ検出レイヤーの追加（クリックとタッチの両対応）
 
 ```tsx
-{showSpeedControl && (
-  <div 
-    className="fixed inset-0 z-10"
-    onClick={() => setShowSpeedControl(false)}
-  >
-    <div 
-      className="absolute bottom-16 right-20 mb-2 p-4 bg-white border border-gray-200 rounded-lg shadow-lg w-64"
-      onClick={(e) => e.stopPropagation()}
+{
+  showSpeedControl && (
+    <div
+      className="fixed inset-0 z-10"
+      onClick={() => {
+        if (!speedModalTouchProcessedRef.current) {
+          setShowSpeedControl(false);
+        }
+      }}
+      onTouchEnd={(e) => {
+        e.preventDefault();
+        speedModalTouchProcessedRef.current = true;
+        setShowSpeedControl(false);
+        // クリックイベントの重複を防ぐため、短時間フラグを立てる
+        setTimeout(() => {
+          speedModalTouchProcessedRef.current = false;
+        }, 300);
+      }}
     >
-      {/* モーダル内容 */}
+      <div
+        className="absolute bottom-16 right-20 mb-2 p-4 bg-white border border-gray-200 rounded-lg shadow-lg w-64"
+        onClick={(e) => e.stopPropagation()}
+        onTouchEnd={(e) => e.stopPropagation()}
+      >
+        {/* モーダル内容 */}
+      </div>
     </div>
-  </div>
-)}
+  );
+}
 ```
 
 理由:
-- `fixed inset-0` で全画面を覆う透明レイヤーを作成
-- このレイヤーをクリックすることで外部タップを検出
-- モーダルの背後に配置してクリックイベントをキャッチ
 
-### 2. イベント伝播の制御
+- `fixed inset-0` で全画面を覆う透明レイヤーを作成
+- クリックとタッチの両方のイベントを処理してモバイル対応を強化
+- `speedModalTouchProcessedRef` でタッチとクリックの重複実行を防止
+
+### 2. イベント伝播の制御とタッチ処理の最適化
 
 ```tsx
+const speedModalTouchProcessedRef = useRef(false);
+
+// モーダル内部での伝播防止
 onClick={(e) => e.stopPropagation()}
+onTouchEnd={(e) => e.stopPropagation()}
+
+// 外部レイヤーでの重複防止
+onTouchEnd={(e) => {
+  e.preventDefault();
+  speedModalTouchProcessedRef.current = true;
+  setShowSpeedControl(false);
+  setTimeout(() => {
+    speedModalTouchProcessedRef.current = false;
+  }, 300);
+}}
 ```
 
 理由:
-- モーダル内部のクリックが外部クリックハンドラーに伝播するのを防止
+
+- モーダル内部のクリック/タッチが外部ハンドラーに伝播するのを防止
+- タッチイベント後300ms間はクリックイベントを無視して重複実行を防止
+- `e.preventDefault()` でモバイルブラウザのデフォルト動作をブロック
 - スライダー操作時に意図しない閉じ動作を防ぐ
-- モーダル内のUI要素が正常に動作することを保証
 
 ---
 

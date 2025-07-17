@@ -81,6 +81,7 @@ export default function ChatUI() {
   const audioChunksRef = useRef<Blob[]>([]);
   const longPressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const translationCache = useRef<Map<string, string>>(new Map());
+  const speedModalTouchProcessedRef = useRef(false);
 
   const speedOptions = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
 
@@ -1158,11 +1159,25 @@ export default function ChatUI() {
       {showSpeedControl && (
         <div 
           className="fixed inset-0 z-10"
-          onClick={() => setShowSpeedControl(false)}
+          onClick={() => {
+            if (!speedModalTouchProcessedRef.current) {
+              setShowSpeedControl(false);
+            }
+          }}
+          onTouchEnd={(e) => {
+            e.preventDefault();
+            speedModalTouchProcessedRef.current = true;
+            setShowSpeedControl(false);
+            // クリックイベントの重複を防ぐため、短時間フラグを立てる
+            setTimeout(() => {
+              speedModalTouchProcessedRef.current = false;
+            }, 300);
+          }}
         >
           <div 
             className="absolute bottom-16 right-20 mb-2 p-4 bg-white border border-gray-200 rounded-lg shadow-lg w-64"
             onClick={(e) => e.stopPropagation()}
+            onTouchEnd={(e) => e.stopPropagation()}
           >
             <div className="space-y-3">
               <div className="flex items-center justify-between">
