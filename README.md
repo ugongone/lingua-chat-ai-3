@@ -1,135 +1,146 @@
-# Turborepo starter
+# Lingua Chat AI 3
 
-This Turborepo starter is maintained by the Turborepo core team.
+AI駆動の音声認識・応答システムです。音声入力、テキスト入力、リアルタイム翻訳、音声合成機能を統合したWebアプリケーションです。
 
-## Using this example
+## 主な機能
 
-Run the following command:
+### 🎤 音声認識
+- Web Speech APIを使用したリアルタイム音声認識
+- 音声からテキストへの変換
+- Whisper API統合による高精度な音声認識
 
-```sh
-npx create-turbo@latest
+### 🤖 AI応答
+- OpenAI GPT-4oを使用した知的な応答生成
+- 日本語・英語に対応
+- コンテキストを考慮した自然な会話
+
+### 🌐 翻訳機能
+- 日本語↔英語の双方向翻訳
+- テキスト選択による翻訳ポップアップ
+- 英語文章の添削機能
+
+### 🔊 音声合成
+- Text-to-Speech（TTS）機能
+- 再生速度調整機能
+- 自動音声再生機能
+
+### 📱 PWA対応
+- プログレッシブWebアプリとしてインストール可能
+- オフライン対応
+- ネイティブアプリ体験
+
+## アーキテクチャ
+
+このプロジェクトは[Turborepo](https://turbo.build/repo)を使用したモノレポ構成です。
+
+### アプリケーション
+- **`apps/web`**: メインのWebアプリケーション（Next.js）
+- **`apps/docs`**: ドキュメントとADR（Architecture Decision Records）
+
+### パッケージ
+- **`@repo/ui`**: 共有UIコンポーネント
+- **`@repo/eslint-config`**: ESLint設定
+- **`@repo/typescript-config`**: TypeScript設定
+
+## 開発環境のセットアップ
+
+### 前提条件
+- Node.js 18以上
+- pnpm 9.0.0以上
+
+### インストール
+
+```bash
+# リポジトリをクローン
+git clone [repository-url]
+cd lingua-chat-ai-3
+
+# 依存関係をインストール
+pnpm install
 ```
 
-## What's inside?
+### 環境変数の設定
 
-This Turborepo includes the following packages/apps:
-
-### Apps and Packages
-
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
-
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
-
-```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build
-yarn dlx turbo build
-pnpm exec turbo build
+```bash
+# apps/web/.env.local を作成
+OPENAI_API_KEY=your_openai_api_key_here
 ```
 
-You can build a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
+## 開発
 
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build --filter=docs
+### 開発サーバー起動
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build --filter=docs
-yarn exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
-```
+```bash
+# 全アプリケーションを開発モードで起動
+pnpm dev
 
-### Develop
-
-To develop all apps and packages, run the following command:
-
-```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev
-yarn exec turbo dev
-pnpm exec turbo dev
+# 特定のアプリケーションのみ起動
+pnpm dev --filter=web
 ```
 
-You can develop a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
+### ビルド
 
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev --filter=web
+```bash
+# 全アプリケーションをビルド
+pnpm build
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev --filter=web
-yarn exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
+# 特定のアプリケーションのみビルド
+pnpm build --filter=web
 ```
 
-### Remote Caching
+### Linting & Formatting
 
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
+```bash
+# ESLintでコードをチェック
+pnpm lint
 
-Turborepo can use a technique known as [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
+# Prettierでコードをフォーマット
+pnpm format
 
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo login
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo login
-yarn exec turbo login
-pnpm exec turbo login
+# TypeScriptの型チェック
+pnpm check-types
 ```
 
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
+## デプロイ
 
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
+本番環境では以下の手順でデプロイしてください：
 
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo link
+1. 環境変数を本番環境に設定
+2. `pnpm build`でビルド
+3. `apps/web`の成果物をデプロイ
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo link
-yarn exec turbo link
-pnpm exec turbo link
-```
+## 技術スタック
 
-## Useful Links
+- **フロントエンド**: Next.js 15, React 19, TypeScript
+- **スタイリング**: Tailwind CSS
+- **UI**: Radix UI, Lucide React
+- **AI**: OpenAI API (GPT-4o, Whisper)
+- **音声**: Web Speech API, Speech Synthesis API
+- **パッケージ管理**: pnpm
+- **ビルドツール**: Turbo
 
-Learn more about the power of Turborepo:
+## 設計書（ADR）
 
-- [Tasks](https://turborepo.com/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.com/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.com/docs/reference/configuration)
-- [CLI Usage](https://turborepo.com/docs/reference/command-line-reference)
+このプロジェクトの設計決定は`apps/docs/adr/`に文書化されています。
+
+- [音声認識機能](./apps/docs/adr/0001-speech-recognition.md)
+- [AI応答統合](./apps/docs/adr/0002-ai-response-integration.md)
+- [Whisper API統合](./apps/docs/adr/0003-whisper-api-integration.md)
+- [GPT-4o転記機能](./apps/docs/adr/0004-gpt-4o-transcribe-migration.md)
+- [英語添削機能](./apps/docs/adr/0005-english-correction-feature.md)
+- [テキスト入力機能](./apps/docs/adr/0006-text-input-functionality.md)
+- [日英翻訳機能](./apps/docs/adr/0008-japanese-to-english-translation.md)
+- [Text-to-Speech機能](./apps/docs/adr/0011-text-to-speech-feature.md)
+- [PWA実装](./apps/docs/adr/0020-pwa-implementation.md)
+- [翻訳ポップアップ機能](./apps/docs/adr/0021-translation-popup-position-adjustment.md)
+
+## Contributing
+
+1. フォークまたはブランチを作成
+2. 変更を実装
+3. テストを実行: `pnpm lint && pnpm check-types`
+4. プルリクエストを作成
+
+## License
+
+このプロジェクトは私的利用のためのものです。
