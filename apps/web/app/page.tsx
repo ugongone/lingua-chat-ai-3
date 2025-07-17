@@ -1156,34 +1156,42 @@ export default function ChatUI() {
       </div>
 
       {showSpeedControl && (
-        <div className="absolute bottom-16 right-20 mb-2 p-4 bg-white border border-gray-200 rounded-lg shadow-lg w-64 z-10">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-700">
-                読み上げ速度
-              </span>
-              <span className="text-sm text-blue-600 font-medium">
-                {playbackSpeed}x
-              </span>
+        <div 
+          className="fixed inset-0 z-10"
+          onClick={() => setShowSpeedControl(false)}
+        >
+          <div 
+            className="absolute bottom-16 right-20 mb-2 p-4 bg-white border border-gray-200 rounded-lg shadow-lg w-64"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-gray-700">
+                  読み上げ速度
+                </span>
+                <span className="text-sm text-blue-600 font-medium">
+                  {playbackSpeed}x
+                </span>
+              </div>
+              <div className="relative">
+                <input
+                  type="range"
+                  min="0"
+                  max="6"
+                  step="1"
+                  value={speedOptions.indexOf(playbackSpeed)}
+                  onChange={(e) =>
+                    setPlaybackSpeed(
+                      speedOptions[Number.parseInt(e.target.value)] || 1.0
+                    )
+                  }
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                />
+              </div>
             </div>
-            <div className="relative">
-              <input
-                type="range"
-                min="0"
-                max="6"
-                step="1"
-                value={speedOptions.indexOf(playbackSpeed)}
-                onChange={(e) =>
-                  setPlaybackSpeed(
-                    speedOptions[Number.parseInt(e.target.value)] || 1.0
-                  )
-                }
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-              />
-            </div>
+            {/* Arrow pointing down - 右端に配置 */}
+            <div className="absolute -bottom-2 right-4 w-4 h-4 bg-white border-r border-b border-gray-200 rotate-45"></div>
           </div>
-          {/* Arrow pointing down - 右端に配置 */}
-          <div className="absolute -bottom-2 right-4 w-4 h-4 bg-white border-r border-b border-gray-200 rotate-45"></div>
         </div>
       )}
 
