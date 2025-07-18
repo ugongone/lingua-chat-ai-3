@@ -34,7 +34,7 @@ Next.jsプロジェクトにPWA機能（Web App Manifest、Service Worker、イ�
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#000000",
+  "theme_color": "#ffffff",
   "orientation": "portrait",
   "scope": "/",
   "lang": "ja",
@@ -184,7 +184,7 @@ export const metadata: Metadata = {
     userScalable: false,
     viewportFit: "cover",
   },
-  themeColor: "#000000",
+  themeColor: "#ffffff",
 };
 ```
 
