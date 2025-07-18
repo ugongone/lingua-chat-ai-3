@@ -96,23 +96,99 @@ const handleTranslateMessage = (messageId: string) => {
 - 翻訳表示中の視覚的フィードバック（青色ハイライト）
 - アクセシブルなボタンサイズとクリック領域
 
-### 5. 翻訳コンテンツ表示
+### 5. 翻訳状態管理の強化
 
 ```ts
-{message.role === "assistant" && translatedMessages.has(message.id) && (
-  <div className="mt-2 rounded-lg p-3 bg-blue-50 border border-blue-200 text-blue-800 text-sm max-w-full">
-    <div className="flex items-start gap-2">
-      <Languages className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
-      <div className="whitespace-pre-line flex-1">日本語訳が表示されます。</div>
-    </div>
-  </div>
-)}
+const [messageTranslations, setMessageTranslations] = useState<Map<string, string>>(new Map());
+const [translatingMessages, setTranslatingMessages] = useState<Set<string>>(new Set());
+const [translationErrors, setTranslationErrors] = useState<Map<string, string>>(new Map());
 ```
 
 理由:
-- 青い背景による翻訳コンテンツの明確な視覚的区別
-- Languages アイコンによる翻訳内容であることの明示
-- レスポンシブデザインに対応した適切な幅制限
+- 翻訳結果をメッセージIDごとにキャッシュして重複リクエストを回避
+- 翻訳中の状態を管理してローディング表示とボタン無効化を実現
+- エラー状態の管理によるユーザーフィードバックの向上
+
+### 6. 実際の翻訳API統合
+
+```ts
+const handleTranslateMessage = async (messageId: string, content: string) => {
+  try {
+    setTranslatingMessages((prev) => new Set(prev).add(messageId));
+    
+    const response = await fetch("/api/translate-to-japanese", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: content }),
+    });
+
+    if (!response.ok) {
+      throw new Error("翻訳リクエストが失敗しました");
+    }
+
+    const result = await response.json();
+    const translatedText = result.translatedText;
+
+    setMessageTranslations((prev) => {
+      const newMap = new Map(prev);
+      newMap.set(messageId, translatedText);
+      return newMap;
+    });
+
+    setTranslatedMessages((prev) => {
+      const newSet = new Set(prev);
+      newSet.add(messageId);
+      return newSet;
+    });
+  } catch (error) {
+    setTranslationErrors((prev) => {
+      const newMap = new Map(prev);
+      newMap.set(messageId, error.message);
+      return newMap;
+    });
+  } finally {
+    setTranslatingMessages((prev) => {
+      const newSet = new Set(prev);
+      newSet.delete(messageId);
+      return newSet;
+    });
+  }
+};
+```
+
+理由:
+- 既存の `/api/translate-to-japanese` エンドポイントを活用
+- OpenAI GPT-4.1 による高品質な日本語翻訳を提供
+- 非同期処理による UI の応答性維持
+
+### 7. ローディングとエラー表示
+
+```ts
+<Button
+  disabled={translatingMessages.has(message.id)}
+  onClick={() => handleTranslateMessage(message.id, message.content)}
+>
+  {translatingMessages.has(message.id) ? (
+    <div className="animate-spin h-4 w-4 border border-blue-500 border-t-transparent rounded-full" />
+  ) : (
+    <Languages className="h-4 w-4" />
+  )}
+</Button>
+
+// 翻訳結果表示
+<div className="whitespace-pre-line flex-1">
+  {translationErrors.has(message.id) ? (
+    <span className="text-red-600">{translationErrors.get(message.id)}</span>
+  ) : (
+    messageTranslations.get(message.id) || "翻訳中..."
+  )}
+</div>
+```
+
+理由:
+- 翻訳中のスピナー表示によるユーザーフィードバック
+- ボタン無効化による重複リクエストの防止
+- エラー時の適切なメッセージ表示
 
 ---
 
@@ -121,7 +197,9 @@ const handleTranslateMessage = (messageId: string) => {
 - AI応答メッセージに対する翻訳アクセシビリティの大幅な向上
 - モバイルデバイスでのユーザビリティ改善
 - 既存のテキスト選択翻訳機能との併用可能
-- 将来的な実際の翻訳API統合への基盤提供
+- OpenAI APIコストの増加（翻訳リクエストによる）
+- 翻訳結果のキャッシュによる重複API呼び出しの削減
+- ネットワーク接続に依存する機能のため、オフライン時は利用不可
 
 ---
 

@@ -85,6 +85,9 @@ export default function ChatUI() {
   const translationCache = useRef<Map<string, string>>(new Map());
   const speedModalTouchProcessedRef = useRef(false);
   const [translatedMessages, setTranslatedMessages] = useState<Set<string>>(new Set());
+  const [messageTranslations, setMessageTranslations] = useState<Map<string, string>>(new Map());
+  const [translatingMessages, setTranslatingMessages] = useState<Set<string>>(new Set());
+  const [translationErrors, setTranslationErrors] = useState<Map<string, string>>(new Map());
 
   const speedOptions = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
 
@@ -669,16 +672,90 @@ export default function ChatUI() {
     [getTranslation]
   );
 
-  const handleTranslateMessage = (messageId: string) => {
-    setTranslatedMessages((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(messageId)) {
+  const handleTranslateMessage = async (messageId: string, content: string) => {
+    // 翻訳を非表示にする場合
+    if (translatedMessages.has(messageId)) {
+      setTranslatedMessages((prev) => {
+        const newSet = new Set(prev);
         newSet.delete(messageId);
-      } else {
+        return newSet;
+      });
+      return;
+    }
+
+    // 既に翻訳済みの場合は表示切り替えのみ
+    if (messageTranslations.has(messageId)) {
+      setTranslatedMessages((prev) => {
+        const newSet = new Set(prev);
         newSet.add(messageId);
+        return newSet;
+      });
+      return;
+    }
+
+    // 新規翻訳を実行
+    try {
+      setTranslatingMessages((prev) => new Set(prev).add(messageId));
+      setTranslationErrors((prev) => {
+        const newMap = new Map(prev);
+        newMap.delete(messageId);
+        return newMap;
+      });
+
+      const response = await fetch("/api/translate-to-japanese", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: content }),
+      });
+
+      if (!response.ok) {
+        throw new Error("翻訳リクエストが失敗しました");
       }
-      return newSet;
-    });
+
+      const result = await response.json();
+      const translatedText = result.translatedText;
+
+      if (!translatedText) {
+        throw new Error("翻訳結果が取得できませんでした");
+      }
+
+      // 翻訳結果を保存
+      setMessageTranslations((prev) => {
+        const newMap = new Map(prev);
+        newMap.set(messageId, translatedText);
+        return newMap;
+      });
+
+      // 翻訳表示状態を有効化
+      setTranslatedMessages((prev) => {
+        const newSet = new Set(prev);
+        newSet.add(messageId);
+        return newSet;
+      });
+    } catch (error) {
+      console.error("Translation error:", error);
+      
+      // エラーメッセージを設定
+      const errorMessage = error instanceof Error ? error.message : "翻訳中にエラーが発生しました";
+      setTranslationErrors((prev) => {
+        const newMap = new Map(prev);
+        newMap.set(messageId, errorMessage);
+        return newMap;
+      });
+      
+      // エラーでも表示状態にして、エラーメッセージを見せる
+      setTranslatedMessages((prev) => {
+        const newSet = new Set(prev);
+        newSet.add(messageId);
+        return newSet;
+      });
+    } finally {
+      setTranslatingMessages((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(messageId);
+        return newSet;
+      });
+    }
   };
 
   const handleBackgroundClick = useCallback(() => {
@@ -1007,9 +1084,14 @@ export default function ChatUI() {
                       variant="ghost"
                       size="sm"
                       className={`h-8 w-8 p-0 hover:bg-gray-100 ${translatedMessages.has(message.id) ? "bg-blue-100 text-blue-600" : ""}`}
-                      onClick={() => handleTranslateMessage(message.id)}
+                      onClick={() => handleTranslateMessage(message.id, message.content)}
+                      disabled={translatingMessages.has(message.id)}
                     >
-                      <Languages className="h-4 w-4" />
+                      {translatingMessages.has(message.id) ? (
+                        <div className="animate-spin h-4 w-4 border border-blue-500 border-t-transparent rounded-full" />
+                      ) : (
+                        <Languages className="h-4 w-4" />
+                      )}
                     </Button>
                   </div>
                 )}
@@ -1019,7 +1101,13 @@ export default function ChatUI() {
                   <div className="mt-2 rounded-lg p-3 bg-blue-50 border border-blue-200 text-blue-800 text-sm max-w-full">
                     <div className="flex items-start gap-2">
                       <Languages className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                      <div className="whitespace-pre-line flex-1">日本語訳が表示されます。</div>
+                      <div className="whitespace-pre-line flex-1">
+                        {translationErrors.has(message.id) ? (
+                          <span className="text-red-600">{translationErrors.get(message.id)}</span>
+                        ) : (
+                          messageTranslations.get(message.id) || "翻訳中..."
+                        )}
+                      </div>
                     </div>
                   </div>
                 )}
