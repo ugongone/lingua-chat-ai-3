@@ -36,10 +36,11 @@ export default function ChatUI() {
       role: "assistant",
       content:
         "Hello! Please speak to me using voice. Press the microphone button to start our conversation.",
-      timestamp: new Date().toLocaleTimeString([], {
+      timestamp: new Date().toLocaleTimeString('ja-JP', {
         hour: "2-digit",
         minute: "2-digit",
-        second: "2-digit",
+        hour12: false,
+        timeZone: 'Asia/Tokyo'
       }),
     },
   ]);
@@ -219,10 +220,11 @@ export default function ChatUI() {
             id: Date.now().toString(),
             role: "assistant",
             content: `申し訳ございません。現在は日本語と英語のみ対応しています。検出された言語: ${result.language}`,
-            timestamp: new Date().toLocaleTimeString([], {
+            timestamp: new Date().toLocaleTimeString('ja-JP', {
               hour: "2-digit",
               minute: "2-digit",
-              second: "2-digit",
+              hour12: false,
+              timeZone: 'Asia/Tokyo'
             }),
           };
           setMessages((prev) => [...prev, errorMessage]);
@@ -250,10 +252,11 @@ export default function ChatUI() {
           content: result.text,
           correctedContent,
           translatedContent,
-          timestamp: new Date().toLocaleTimeString([], {
+          timestamp: new Date().toLocaleTimeString('ja-JP', {
             hour: "2-digit",
             minute: "2-digit",
-            second: "2-digit",
+            hour12: false,
+            timeZone: 'Asia/Tokyo'
           }),
         };
 
@@ -271,10 +274,11 @@ export default function ChatUI() {
         role: "assistant",
         content:
           "申し訳ございません。音声の認識中にエラーが発生しました。もう一度お試しください。",
-        timestamp: new Date().toLocaleTimeString([], {
+        timestamp: new Date().toLocaleTimeString('ja-JP', {
           hour: "2-digit",
           minute: "2-digit",
-          second: "2-digit",
+          hour12: false,
+          timeZone: 'Asia/Tokyo'
         }),
       };
       setMessages((prev) => [...prev, errorMessage]);
@@ -327,10 +331,11 @@ export default function ChatUI() {
         role: "assistant",
         content:
           "申し訳ございません。AIの応答生成中にエラーが発生しました。もう一度お試しください。",
-        timestamp: new Date().toLocaleTimeString([], {
+        timestamp: new Date().toLocaleTimeString('ja-JP', {
           hour: "2-digit",
           minute: "2-digit",
-          second: "2-digit",
+          hour12: false,
+          timeZone: 'Asia/Tokyo'
         }),
       };
       setMessages((prev) => [...prev, errorMessage]);
@@ -531,10 +536,11 @@ export default function ChatUI() {
       content: userInput,
       correctedContent,
       translatedContent,
-      timestamp: new Date().toLocaleTimeString([], {
+      timestamp: new Date().toLocaleTimeString('ja-JP', {
         hour: "2-digit",
         minute: "2-digit",
-        second: "2-digit",
+        hour12: false,
+        timeZone: 'Asia/Tokyo'
       }),
     };
 

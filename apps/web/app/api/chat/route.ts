@@ -43,10 +43,11 @@ export async function POST(request: NextRequest) {
       id: Date.now().toString(),
       role: assistantMessage.role,
       content: assistantMessage.content,
-      timestamp: new Date().toLocaleTimeString([], {
+      timestamp: new Date().toLocaleTimeString('ja-JP', {
         hour: "2-digit",
         minute: "2-digit",
-        second: "2-digit",
+        hour12: false,
+        timeZone: 'Asia/Tokyo'
       }),
     });
   } catch (error) {
