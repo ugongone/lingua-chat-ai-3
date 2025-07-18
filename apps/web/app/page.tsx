@@ -18,6 +18,7 @@ import {
   Send,
   X,
   Bookmark,
+  Languages,
 } from "lucide-react";
 
 interface Message {
@@ -83,6 +84,7 @@ export default function ChatUI() {
   const longPressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const translationCache = useRef<Map<string, string>>(new Map());
   const speedModalTouchProcessedRef = useRef(false);
+  const [translatedMessages, setTranslatedMessages] = useState<Set<string>>(new Set());
 
   const speedOptions = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
 
@@ -667,6 +669,18 @@ export default function ChatUI() {
     [getTranslation]
   );
 
+  const handleTranslateMessage = (messageId: string) => {
+    setTranslatedMessages((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(messageId)) {
+        newSet.delete(messageId);
+      } else {
+        newSet.add(messageId);
+      }
+      return newSet;
+    });
+  };
+
   const handleBackgroundClick = useCallback(() => {
     setShowTranslation(false);
     setTranslatedText("");
@@ -989,6 +1003,24 @@ export default function ChatUI() {
                         <Volume2 className="h-4 w-4" />
                       )}
                     </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={`h-8 w-8 p-0 hover:bg-gray-100 ${translatedMessages.has(message.id) ? "bg-blue-100 text-blue-600" : ""}`}
+                      onClick={() => handleTranslateMessage(message.id)}
+                    >
+                      <Languages className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+
+                {/* 翻訳されたコンテンツの表示 */}
+                {message.role === "assistant" && translatedMessages.has(message.id) && (
+                  <div className="mt-2 rounded-lg p-3 bg-blue-50 border border-blue-200 text-blue-800 text-sm max-w-full">
+                    <div className="flex items-start gap-2">
+                      <Languages className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                      <div className="whitespace-pre-line flex-1">日本語訳が表示されます。</div>
+                    </div>
                   </div>
                 )}
               </div>
