@@ -169,7 +169,7 @@ export default function ChatUI() {
   };
 
   const isSupportedLanguage = (detectedLang: string): boolean => {
-    return detectedLang === "ja" || detectedLang === "en";
+    return detectedLang === "japanese" || detectedLang === "english";
   };
 
   // OpenAI API を使った翻訳機能
@@ -265,7 +265,7 @@ export default function ChatUI() {
         let translatedContent: string | undefined;
 
         if (
-          result.language === "en" ||
+          result.language === "english" ||
           isEnglish(result.text)
         ) {
           correctedContent = (await correctEnglish(result.text)) || undefined;
@@ -1303,9 +1303,9 @@ export default function ChatUI() {
           !isAIResponding && (
             <p className="text-center text-xs text-gray-500 mt-1">
               Detected:{" "}
-              {detectedLanguage === "ja"
+              {detectedLanguage === "japanese"
                 ? "日本語"
-                : detectedLanguage === "en"
+                : detectedLanguage === "english"
                   ? "English"
                   : detectedLanguage}
             </p>

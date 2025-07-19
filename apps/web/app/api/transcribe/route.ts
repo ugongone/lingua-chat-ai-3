@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
+// OpenAI Whisper-1 verbose_jsonレスポンスの型定義
+interface TranscriptionResponse {
+  text: string;
+  language: string;   // verbose_jsonでは必須
+  duration: number;   // verbose_jsonでは必須
+}
+
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
@@ -25,7 +32,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // サポートされているファイル形式チェック（gpt-4o-transcribe用）
+    // サポートされているファイル形式チェック（whisper-1用）
     const supportedTypes = [
       'audio/wav', 
       'audio/mp3', 
@@ -51,20 +58,26 @@ export async function POST(request: NextRequest) {
 
     const transcription = await client.audio.transcriptions.create({
       file: audioFile,
-      model: 'gpt-4o-transcribe',
+      model: 'whisper-1', // 言語検出のためwhisper-1に戻す
       // 言語を指定せず、自動検出を利用（多言語対応）
       response_format: 'verbose_json', // 言語情報を含む詳細なレスポンス形式
       temperature: 0.2, // 一貫性を重視
     });
 
     console.log(`Transcription completed. Text: ${transcription.text}`);
-    console.log(`Detected language: ${transcription.language}`);
-    console.log(`Audio duration: ${transcription.duration} seconds`);
+    
+    // verbose_jsonなので言語と期間情報が確実に取得できる
+    const transcriptionData = transcription as TranscriptionResponse;
+    const language = transcriptionData.language;
+    const duration = transcriptionData.duration;
+    
+    console.log(`Detected language: ${language}`);
+    console.log(`Audio duration: ${duration} seconds`);
 
     return NextResponse.json({
       text: transcription.text,
-      language: transcription.language, // 検出された言語コード（es, ja, en など）
-      duration: transcription.duration, // 音声の長さ（秒）
+      language: language, // Whisper-1の言語名（japanese, english など）
+      duration: duration, // 音声の長さ（秒）
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
