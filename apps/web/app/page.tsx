@@ -1109,7 +1109,7 @@ export default function ChatUI() {
       </div>
 
       {/* Voice Input Area */}
-      <div className="border-t bg-white p-6">
+      <div className="border-t bg-white p-6 mb-4">
         <div className="flex justify-center items-center">
           {/* Left side - Text input button */}
           <div className="absolute left-6">
@@ -1117,10 +1117,10 @@ export default function ChatUI() {
               <Button
                 variant="outline"
                 size="sm"
-                className="h-10 w-10 p-0 bg-transparent"
+                className="h-12 w-12 p-0 bg-transparent"
                 onClick={() => setShowTextInput(!showTextInput)}
               >
-                <Keyboard className="h-4 w-4" />
+                <Keyboard className="h-5 w-5" />
               </Button>
               {showTextInput && (
                 <div className="absolute bottom-16 left-0 mb-2 p-4 bg-white border border-gray-200 rounded-lg shadow-lg w-80 z-10">
@@ -1178,16 +1178,16 @@ export default function ChatUI() {
             onClick={handleVoiceInput}
             variant={isRecording ? "destructive" : "default"}
             size="lg"
-            className={`h-16 w-16 rounded-full p-0 shadow-lg transition-all duration-200 ${
+            className={`h-20 w-20 rounded-full p-0 shadow-lg transition-all duration-200 ${
               isRecording
                 ? "animate-pulse bg-red-500 hover:bg-red-600 scale-110"
                 : "bg-blue-500 hover:bg-blue-600 hover:scale-105"
             }`}
           >
             {isRecording ? (
-              <MicOff className="h-8 w-8 text-white" />
+              <MicOff className="h-10 w-10 text-white" />
             ) : (
-              <Mic className="h-8 w-8 text-white" />
+              <Mic className="h-10 w-10 text-white" />
             )}
           </Button>
 
@@ -1200,34 +1200,34 @@ export default function ChatUI() {
                   <Button
                     variant={autoPlayAudio ? "default" : "outline"}
                     size="sm"
-                    className="h-10 w-10 p-0 shadow-md"
+                    className="h-12 w-12 p-0 shadow-md"
                     onClick={() => setAutoPlayAudio(!autoPlayAudio)}
                   >
                     {autoPlayAudio ? (
-                      <Volume2 className="h-4 w-4" />
+                      <Volume2 className="h-5 w-5" />
                     ) : (
-                      <VolumeX className="h-4 w-4" />
+                      <VolumeX className="h-5 w-5" />
                     )}
                   </Button>
                   <Button
                     variant={autoBlurText ? "default" : "outline"}
                     size="sm"
-                    className="h-10 w-10 p-0 shadow-md"
+                    className="h-12 w-12 p-0 shadow-md"
                     onClick={() => setAutoBlurText(!autoBlurText)}
                   >
                     {autoBlurText ? (
-                      <EyeOff className="h-4 w-4" />
+                      <EyeOff className="h-5 w-5" />
                     ) : (
-                      <Eye className="h-4 w-4" />
+                      <Eye className="h-5 w-5" />
                     )}
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-10 w-10 p-0 bg-white shadow-md"
+                    className="h-12 w-12 p-0 bg-white shadow-md mb-3"
                     onClick={() => setShowSpeedControl(!showSpeedControl)}
                   >
-                    <span className="text-xs font-medium">
+                    <span className="text-sm font-medium">
                       {playbackSpeed}x
                     </span>
                   </Button>
@@ -1238,10 +1238,10 @@ export default function ChatUI() {
               <Button
                 variant="outline"
                 size="sm"
-                className="h-10 w-10 p-0 bg-white"
+                className="h-12 w-12 p-0 bg-white"
                 onClick={() => setShowSettingsMenu(!showSettingsMenu)}
               >
-                <span className="text-lg font-bold">⋯</span>
+                <span className="text-xl font-bold">⋯</span>
               </Button>
             </div>
           </div>
