@@ -19,6 +19,9 @@ import {
   X,
   Bookmark,
   Languages,
+  MessageCircle,
+  Briefcase,
+  Newspaper,
 } from "lucide-react";
 
 interface Message {
@@ -33,16 +36,10 @@ interface Message {
 export default function ChatUI() {
   const [messages, setMessages] = useState<Message[]>([
     {
-      id: "1",
+      id: "initial",
       role: "assistant",
-      content:
-        "Hello! Please speak to me using voice. Press the microphone button to start our conversation.",
-      timestamp: new Date().toLocaleTimeString('ja-JP', {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-        timeZone: 'Asia/Tokyo'
-      }),
+      content: "Hey! What should we do?",
+      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
     },
   ]);
 
@@ -90,6 +87,33 @@ export default function ChatUI() {
   const [translationErrors, setTranslationErrors] = useState<Map<string, string>>(new Map());
 
   const speedOptions = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
+
+  const initialOptions = [
+    {
+      id: "news",
+      title: "最近のニュースについて教えて",
+      icon: Newspaper,
+      message: "最近のニュースについて教えてください。",
+    },
+    {
+      id: "interview",
+      title: "面接の練習をしてほしい",
+      icon: Briefcase,
+      message: "面接の練習をお願いします。",
+    },
+    {
+      id: "chat",
+      title: "話し相手になって",
+      icon: MessageCircle,
+      message: "話し相手になってください。",
+    },
+  ];
+
+  const handleOptionSelect = (option: (typeof initialOptions)[0]) => {
+    // ボタンが押されるだけで何も反応しない
+    console.log("選択肢が押されました:", option.title)
+  }
+
 
   const correctEnglish = async (text: string): Promise<string | null> => {
     try {
@@ -1098,6 +1122,28 @@ export default function ChatUI() {
                         )}
                       </div>
                     </div>
+                  </div>
+                )}
+
+                {/* 初期選択肢の表示 */}
+                {message.id === "initial" && (
+                  <div className="mt-4 space-y-3 w-full max-w-sm">
+                    {initialOptions.map((option) => {
+                      const IconComponent = option.icon
+                      return (
+                        <Button
+                          key={option.id}
+                          onClick={() => handleOptionSelect(option)}
+                          variant="outline"
+                          className="w-full h-12 p-3 text-left hover:bg-blue-50 hover:border-blue-300 transition-all duration-200 justify-start"
+                        >
+                          <div className="flex items-center gap-3">
+                            <IconComponent className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                            <span className="text-sm font-medium text-gray-900">{option.title}</span>
+                          </div>
+                        </Button>
+                      )
+                    })}
                   </div>
                 )}
               </div>
