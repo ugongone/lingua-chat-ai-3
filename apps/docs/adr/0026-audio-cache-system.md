@@ -174,6 +174,55 @@ const handleTextToSpeech = useCallback(async (messageId: string, text: string) =
 - 10分間の音声データメモリ使用（最大容量は使用パターンに依存）
 - 初回リクエスト時は従来と同じレスポンス時間
 
+### ✅ 解決済み問題
+**Service Worker キャッシュ競合によるキャッシュ無効化**
+
+**問題**: Service Worker（`sw.js`）が`/api/tts`のPOSTリクエストをキャッシュしようとして以下のエラーが発生していた：
+```
+TypeError: Failed to execute 'put' on 'Cache': Request method 'POST' is unsupported
+```
+
+**影響**: メモリベースの`audioCache`が正常に動作せず、毎回OpenAI TTS APIが呼び出されていた
+
+**解決策**: Service Workerに以下の修正を実装：
+
+```javascript
+// apps/web/public/sw.js
+// API リクエストは常にネットワークを優先
+if (request.url.includes('/api/')) {
+  // TTS APIのPOSTリクエストはキャッシュ対象外（メモリキャッシュを使用）
+  if (request.url.includes('/api/tts') && request.method === 'POST') {
+    event.respondWith(fetch(request));
+    return;
+  }
+  
+  event.respondWith(
+    fetch(request)
+      .then((response) => {
+        // レスポンスが正常で、かつGETリクエストの場合のみキャッシュ
+        if (response.status === 200 && request.method === 'GET') {
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME)
+            .then((cache) => {
+              cache.put(request, responseClone);
+            });
+        }
+        return response;
+      })
+      .catch(() => {
+        return caches.match(request);
+      })
+  );
+  return;
+}
+```
+
+**結果**:
+- TTS APIのPOSTリクエストがService Workerをバイパス
+- メモリベースの`audioCache`が正常動作
+- 同じテキストの2回目以降の再生で即座再生を実現
+- 他のAPIリクエストへの影響なし（GETリクエストのみキャッシュ対象）
+
 ---
 
 ## 言語的・技術的なポイント

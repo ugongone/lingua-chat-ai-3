@@ -47,11 +47,17 @@ self.addEventListener('fetch', (event) => {
   
   // API リクエストは常にネットワークを優先
   if (request.url.includes('/api/')) {
+    // TTS APIのPOSTリクエストはキャッシュ対象外（メモリキャッシュを使用）
+    if (request.url.includes('/api/tts') && request.method === 'POST') {
+      event.respondWith(fetch(request));
+      return;
+    }
+    
     event.respondWith(
       fetch(request)
         .then((response) => {
-          // レスポンスが正常な場合のみキャッシュ
-          if (response.status === 200) {
+          // レスポンスが正常で、かつGETリクエストの場合のみキャッシュ
+          if (response.status === 200 && request.method === 'GET') {
             const responseClone = response.clone();
             caches.open(CACHE_NAME)
               .then((cache) => {
