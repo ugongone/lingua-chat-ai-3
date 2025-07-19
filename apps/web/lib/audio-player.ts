@@ -146,21 +146,19 @@ export class TTSPlayer {
   private isLoading = false
   private useWebAudio = true
 
-  // TTS APIから音声を取得（キャッシュ優先）
-  private async fetchTTS(text: string, speed?: number): Promise<Blob> {
-    // キャッシュチェック（基本速度のキャッシュを確認）
-    const cachedBlob = audioCache.get(text)
+  // TTS APIから音声を取得（キャッシュ優先、速度別対応）
+  private async fetchTTS(text: string, speed: number = 1.0): Promise<Blob> {
+    // 速度別キャッシュチェック
+    const cachedBlob = audioCache.get(text, speed)
     if (cachedBlob) {
       return cachedBlob
     }
 
-    // API呼び出し（Web Audio API使用時は基本速度、フォールバック時は指定速度）
-    const requestSpeed = this.useWebAudio ? 1.0 : (speed || 1.0)
-    
+    // API呼び出し（常に指定速度で生成）
     const response = await fetch('/api/tts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, speed: requestSpeed }),
+      body: JSON.stringify({ text, speed }),
     })
 
     if (!response.ok) {
@@ -169,20 +167,18 @@ export class TTSPlayer {
 
     const blob = await response.blob()
     
-    // キャッシュに保存（基本速度の場合のみ）
-    if (requestSpeed === 1.0) {
-      try {
-        audioCache.set(text, blob)
-      } catch (cacheError) {
-        console.warn('Failed to cache audio:', cacheError)
-        // キャッシュエラーは無視して続行
-      }
+    // 速度別キャッシュに保存
+    try {
+      audioCache.set(text, speed, blob)
+    } catch (cacheError) {
+      console.warn('Failed to cache audio:', cacheError)
+      // キャッシュエラーは無視して続行
     }
     
     return blob
   }
 
-  // テキストを音声で再生（速度指定可能、キャッシュ対応、フォールバック付き）
+  // テキストを音声で再生（速度別最適化、キャッシュ対応、フォールバック付き）
   async speak(
     text: string, 
     playbackRate = 1.0, 
@@ -195,23 +191,23 @@ export class TTSPlayer {
     try {
       this.isLoading = true
       
-      // 音声データを取得（キャッシュ優先）
+      // 指定速度で音声データを取得（キャッシュ優先）
       const audioBlob = await this.fetchTTS(text, playbackRate)
       
       if (this.useWebAudio) {
         try {
-          // Web Audio APIで再生を試行
-          await this.audioPlayer.play(audioBlob, playbackRate, options)
+          // Web Audio APIで基本再生（速度は既に最適化済み）
+          await this.audioPlayer.play(audioBlob, 1.0, options)
         } catch (webAudioError) {
           console.warn('Web Audio API failed, falling back to Audio API:', webAudioError)
           this.useWebAudio = false
           
-          // フォールバック：従来のAudio APIで再生
-          await fallbackPlay(audioBlob, playbackRate, options)
+          // フォールバック：従来のAudio APIで基本再生
+          await fallbackPlay(audioBlob, 1.0, options)
         }
       } else {
-        // フォールバック再生
-        await fallbackPlay(audioBlob, playbackRate, options)
+        // フォールバック再生（基本速度、音声は既に最適化済み）
+        await fallbackPlay(audioBlob, 1.0, options)
       }
       
     } catch (error) {

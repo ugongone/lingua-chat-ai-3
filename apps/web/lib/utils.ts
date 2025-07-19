@@ -5,7 +5,7 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-// 音声キャッシュシステム（10分TTL）
+// 音声キャッシュシステム（10分TTL）- 速度別対応
 interface CacheEntry {
   blob: Blob
   timer: NodeJS.Timeout
@@ -16,14 +16,16 @@ class AudioCache {
   private cache = new Map<string, CacheEntry>()
   private readonly TTL = 10 * 60 * 1000 // 10分
 
-  // キャッシュキーを生成（テキスト内容から）
-  private generateKey(text: string): string {
-    return btoa(encodeURIComponent(text)).slice(0, 50)
+  // キャッシュキーを生成（テキスト内容と速度から）
+  private generateKey(text: string, speed: number): string {
+    const speedKey = speed.toFixed(2) // 0.50, 1.00, 1.50 など
+    const textKey = btoa(encodeURIComponent(text)).slice(0, 40)
+    return `${textKey}_${speedKey}`
   }
 
   // 音声をキャッシュに保存
-  set(text: string, blob: Blob): void {
-    const key = this.generateKey(text)
+  set(text: string, speed: number, blob: Blob): void {
+    const key = this.generateKey(text, speed)
     
     // 既存のエントリがある場合、タイマーをクリア
     const existing = this.cache.get(key)
@@ -44,8 +46,8 @@ class AudioCache {
   }
 
   // キャッシュから音声を取得
-  get(text: string): Blob | null {
-    const key = this.generateKey(text)
+  get(text: string, speed: number): Blob | null {
+    const key = this.generateKey(text, speed)
     const entry = this.cache.get(key)
     return entry ? entry.blob : null
   }
@@ -62,11 +64,16 @@ class AudioCache {
   getStats() {
     return {
       size: this.cache.size,
-      entries: Array.from(this.cache.entries()).map(([key, entry]) => ({
-        key,
-        size: entry.blob.size,
-        age: Date.now() - entry.createdAt
-      }))
+      entries: Array.from(this.cache.entries()).map(([key, entry]) => {
+        const [textPart, speedPart] = key.split('_')
+        return {
+          key,
+          textKey: textPart,
+          speed: speedPart,
+          size: entry.blob.size,
+          age: Date.now() - entry.createdAt
+        }
+      })
     }
   }
 }
