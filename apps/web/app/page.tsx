@@ -437,31 +437,20 @@ export default function ChatUI() {
     try {
       setIsPlaying((prev) => ({ ...prev, [messageId]: true }));
 
-      const response = await fetch("/api/tts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, speed: playbackSpeed }),
+      const { ttsPlayer } = await import('@/lib/audio-player');
+      
+      await ttsPlayer.speak(text, playbackSpeed, {
+        onStart: () => {
+          setIsPlaying((prev) => ({ ...prev, [messageId]: true }));
+        },
+        onEnd: () => {
+          setIsPlaying((prev) => ({ ...prev, [messageId]: false }));
+        },
+        onError: (error) => {
+          console.error("TTS error:", error);
+          setIsPlaying((prev) => ({ ...prev, [messageId]: false }));
+        }
       });
-
-      if (!response.ok) {
-        throw new Error("TTS request failed");
-      }
-
-      const audioBlob = await response.blob();
-      const audioUrl = URL.createObjectURL(audioBlob);
-      const audio = new Audio(audioUrl);
-
-      audio.onended = () => {
-        setIsPlaying((prev) => ({ ...prev, [messageId]: false }));
-        URL.revokeObjectURL(audioUrl);
-      };
-
-      audio.onerror = () => {
-        setIsPlaying((prev) => ({ ...prev, [messageId]: false }));
-        URL.revokeObjectURL(audioUrl);
-      };
-
-      await audio.play();
     } catch (error) {
       console.error("TTS error:", error);
       setIsPlaying((prev) => ({ ...prev, [messageId]: false }));
