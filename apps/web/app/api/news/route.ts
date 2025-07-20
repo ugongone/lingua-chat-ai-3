@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import OpenAI from "openai";
 
 const client = new OpenAI({
@@ -87,8 +87,8 @@ Make it sound like you're telling a friend about something interesting you just 
     const titleMatch = summary.match(/TITLE:\s*(.+?)(?:\n|SUMMARY:)/i);
     const summaryMatch = summary.match(/SUMMARY:\s*(.+)/is);
     
-    const title = titleMatch ? titleMatch[1].trim() : "Latest Tech News";
-    const content = summaryMatch ? summaryMatch[1].trim() : summary;
+    const title = titleMatch?.[1]?.trim() || "📰 Latest Tech News";
+    const content = summaryMatch?.[1]?.trim() || summary;
 
     // 既存チャット形式でレスポンス
     return NextResponse.json({
