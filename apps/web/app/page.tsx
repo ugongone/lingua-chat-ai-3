@@ -109,9 +109,47 @@ export default function ChatUI() {
     },
   ];
 
-  const handleOptionSelect = (option: (typeof initialOptions)[0]) => {
-    // ボタンが押されるだけで何も反応しない
-    console.log("選択肢が押されました:", option.title)
+  const handleOptionSelect = async (option: (typeof initialOptions)[0]) => {
+    if (option.id === "news") {
+      // 最新ニュース取得処理
+      try {
+        setIsAIResponding(true);
+
+        const response = await fetch("/api/news");
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const newsMessage = await response.json();
+
+        if (newsMessage.error) {
+          throw new Error(newsMessage.error);
+        }
+
+        setMessages((prev) => [...prev, newsMessage]);
+      } catch (error) {
+        console.error("News fetch error:", error);
+
+        const errorMessage = {
+          id: Date.now().toString(),
+          role: "assistant" as const,
+          content: "申し訳ございません。ニュースの取得中にエラーが発生しました。もう一度お試しください。",
+          timestamp: new Date().toLocaleTimeString('ja-JP', {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+            timeZone: 'Asia/Tokyo'
+          }),
+        };
+        setMessages((prev) => [...prev, errorMessage]);
+      } finally {
+        setIsAIResponding(false);
+      }
+    } else {
+      // その他の選択肢は従来通り
+      console.log("選択肢が押されました:", option.title);
+    }
   }
 
 
