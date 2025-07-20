@@ -87,14 +87,15 @@ Make it sound like you're telling a friend about something interesting you just 
     const titleMatch = summary.match(/TITLE:\s*(.+?)(?:\n|SUMMARY:)/i);
     const summaryMatch = summary.match(/SUMMARY:\s*(.+)/is);
     
-    const title = titleMatch ? titleMatch[1].trim() : "📰 Latest Tech News";
+    const title = titleMatch ? titleMatch[1].trim() : "Latest Tech News";
     const content = summaryMatch ? summaryMatch[1].trim() : summary;
 
     // 既存チャット形式でレスポンス
     return NextResponse.json({
       id: Date.now().toString(),
       role: "assistant",
-      content: `📰 ${title}\n\n${content}`,
+      content: `${title}\n\n${content}`,
+      type: "news",
       timestamp: new Date().toLocaleTimeString('ja-JP', {
         hour: "2-digit",
         minute: "2-digit", 
@@ -110,6 +111,7 @@ Make it sound like you're telling a friend about something interesting you just 
       id: Date.now().toString(),
       role: "assistant", 
       content: "申し訳ございません。最新ニュースの取得中にエラーが発生しました。しばらく時間をおいてから再度お試しください。",
+      type: "chat",
       timestamp: new Date().toLocaleTimeString('ja-JP', {
         hour: "2-digit",
         minute: "2-digit",

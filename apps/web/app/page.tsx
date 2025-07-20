@@ -31,6 +31,7 @@ interface Message {
   correctedContent?: string;
   translatedContent?: string;
   timestamp: string;
+  type?: "news" | "chat";
 }
 
 export default function ChatUI() {
@@ -1012,7 +1013,33 @@ export default function ChatUI() {
                         : "ai-message-content"
                     }`}
                   >
-                    {message.content}
+                    {/* ニュース記事の特別なレンダリング */}
+                    {message.role === "assistant" &&
+                    message.type === "news" ? (
+                      <div className="space-y-4">
+                        {/* ニュースヘッダー */}
+                        <div className="border-l-4 border-blue-500 pl-4 py-2 bg-blue-50 rounded-r-lg">
+                          <div className="flex items-start gap-3">
+                            <div className="text-2xl">📰</div>
+                            <div>
+                              <div className="text-xs text-blue-600 font-medium uppercase tracking-wide mb-1">
+                                Breaking News
+                              </div>
+                              <h3 className="text-lg font-bold text-gray-900 leading-tight">
+                                {message.content.split("\n\n")[0] || ""}
+                              </h3>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* ニュース本文 */}
+                        <div className="text-gray-700 leading-relaxed">
+                          {message.content.split("\n\n").slice(1).join("\n\n")}
+                        </div>
+                      </div>
+                    ) : (
+                      message.content
+                    )}
                   </div>
                 </div>
 
