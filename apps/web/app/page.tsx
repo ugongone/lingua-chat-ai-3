@@ -1019,8 +1019,7 @@ export default function ChatUI() {
                       <div className="space-y-4">
                         {/* ニュースヘッダー */}
                         <div className="border-l-4 border-blue-500 pl-4 py-2 bg-blue-50 rounded-r-lg">
-                          <div className="flex items-start gap-3">
-                            <div className="text-2xl">📰</div>
+                          <div className="flex items-start">
                             <div>
                               <div className="text-xs text-blue-600 font-medium uppercase tracking-wide mb-1">
                                 Breaking News
