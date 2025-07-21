@@ -50,7 +50,7 @@ export async function GET() {
     }
 
     // GPT-4.1-mini で要約とタイトル生成
-    const summaryPrompt = `Hey! Can you help me understand this tech story from Hacker News? Here's what I found:
+    const summaryPrompt = `Hey! I found this interesting tech story. Here's what I came across:
 
 Title: ${story.title}
 ${story.text ? `Content: ${story.text.substring(0, 500)}` : ""}
@@ -59,14 +59,14 @@ Please give me:
 1. A catchy, specific title that captures the main point (like "Google Launches New AI Tool" instead of "Latest Tech News")
 2. A friendly 2-3 sentence summary that explains what happened and why it's cool for developers
 
-Make it sound like you're telling a friend about something interesting you just read!`;
+Make it sound like you're telling a friend about something interesting you just discovered!`;
 
     const completion = await client.chat.completions.create({
       model: "gpt-4.1-mini",
       messages: [
         {
           role: "system",
-          content: "You're a tech-savvy friend who loves sharing cool news! Write in a casual, friendly tone. Start with 'TITLE:' followed by a specific headline, then 'SUMMARY:' with your explanation.",
+          content: "You're a tech-savvy friend who loves sharing cool discoveries! Write in a casual, friendly tone. Start with 'TITLE:' followed by a specific headline, then 'SUMMARY:' with your explanation.",
         },
         {
           role: "user", 
