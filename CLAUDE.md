@@ -3,6 +3,10 @@
 - 思考は日本語で出力すること
 - 必ず "Plan → Reasoning → Code" の順で進行すること
 
+## Coding Rule
+
+- コメントは日本語で書くこと
+
 ## After Coding
 
 - /apps/docs/adr/ 配下に機能追加の設計書(adr)を作成すること
