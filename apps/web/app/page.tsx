@@ -51,6 +51,9 @@ export default function ChatUI() {
   const [autoPlayAudio, setAutoPlayAudio] = useState(false);
   const autoPlayedMessagesRef = useRef<Set<string>>(new Set());
   const autoPlayStartTimeRef = useRef<number | null>(null);
+  const autoPlayedTranslationsRef = useRef<Set<string>>(new Set());
+  const waitingForAIResponseRef = useRef<boolean>(false);
+  const messagesRef = useRef<Message[]>(messages);
   const [autoBlurText, setAutoBlurText] = useState(false);
   const [showTextInput, setShowTextInput] = useState(false);
   const [input, setInput] = useState("");
@@ -496,7 +499,11 @@ export default function ChatUI() {
     navigator.clipboard.writeText(content);
   };
 
-  const handleTextToSpeech = useCallback(async (messageId: string, text: string) => {
+  const handleTextToSpeech = useCallback(async (
+    messageId: string, 
+    text: string, 
+    customOptions?: { onEnd?: () => void; onStart?: () => void; onError?: (error: Error) => void }
+  ) => {
     try {
       setIsPlaying((prev) => ({ ...prev, [messageId]: true }));
 
@@ -505,13 +512,16 @@ export default function ChatUI() {
       await ttsPlayer.speak(text, playbackSpeed, {
         onStart: () => {
           setIsPlaying((prev) => ({ ...prev, [messageId]: true }));
+          customOptions?.onStart?.();
         },
         onEnd: () => {
           setIsPlaying((prev) => ({ ...prev, [messageId]: false }));
+          customOptions?.onEnd?.();
         },
         onError: (error) => {
           console.error("TTS error:", error);
           setIsPlaying((prev) => ({ ...prev, [messageId]: false }));
+          customOptions?.onError?.(error);
         }
       });
     } catch (error) {
@@ -527,6 +537,8 @@ export default function ChatUI() {
     } else if (!autoPlayAudio) {
       autoPlayStartTimeRef.current = null;
       autoPlayedMessagesRef.current.clear();
+      autoPlayedTranslationsRef.current.clear();
+      waitingForAIResponseRef.current = false;
     }
   }, [autoPlayAudio]);
 
@@ -554,12 +566,87 @@ export default function ChatUI() {
 
       // Only auto-play if message was created after auto-play was enabled
       if (messageId >= autoPlayStartTime) {
+        // Check if we need to wait for user translation to finish
+        const shouldWaitForTranslation = waitingForAIResponseRef.current;
+        
+        if (shouldWaitForTranslation) {
+          // Don't auto-play yet, let the translation callback handle it
+          return;
+        }
+
         // Mark this message as auto-played to prevent duplicate playback
         autoPlayedMessagesRef.current.add(lastMessage.id);
 
         // Add a small delay to ensure message is rendered
         const timer = setTimeout(() => {
           handleTextToSpeech(lastMessage.id, lastMessage.content);
+        }, 500);
+
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [messages, autoPlayAudio, isPlaying, handleTextToSpeech]);
+
+  // Keep messagesRef up to date
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
+  // Auto-play TTS for user message translations when autoPlayAudio is enabled
+  useEffect(() => {
+    if (
+      !autoPlayAudio ||
+      messages.length === 0 ||
+      autoPlayStartTimeRef.current === null
+    )
+      return;
+
+    const lastMessage = messages[messages.length - 1];
+
+    // Check if the last message is from user with translated content or corrected content
+    if (
+      lastMessage &&
+      lastMessage.role === "user" &&
+      (lastMessage.translatedContent || lastMessage.correctedContent) &&
+      !isPlaying[lastMessage.id] &&
+      !autoPlayedTranslationsRef.current.has(lastMessage.id)
+    ) {
+      // Since message ID is Date.now().toString(), we can compare numerically
+      const messageId = Number.parseInt(lastMessage.id);
+      const autoPlayStartTime = autoPlayStartTimeRef.current;
+
+      // Only auto-play if message was created after auto-play was enabled
+      if (messageId >= autoPlayStartTime) {
+        // Mark this translation as auto-played to prevent duplicate playback
+        autoPlayedTranslationsRef.current.add(lastMessage.id);
+        waitingForAIResponseRef.current = true;
+
+        // Add a small delay to ensure message is rendered
+        const timer = setTimeout(() => {
+          const textToRead = lastMessage.translatedContent || lastMessage.correctedContent!;
+          handleTextToSpeech(lastMessage.id, textToRead, {
+            onEnd: () => {
+              // After translation playback ends, trigger delayed AI response auto-play
+              setTimeout(() => {
+                waitingForAIResponseRef.current = false;
+                // Force re-evaluation of AI auto-play using latest messages
+                const currentMessages = messagesRef.current;
+                const lastAIMessage = currentMessages[currentMessages.length - 1];
+                if (
+                  lastAIMessage &&
+                  lastAIMessage.role === "assistant" &&
+                  !autoPlayedMessagesRef.current.has(lastAIMessage.id) &&
+                  autoPlayStartTimeRef.current !== null
+                ) {
+                  const messageId = Number.parseInt(lastAIMessage.id);
+                  if (messageId >= autoPlayStartTimeRef.current) {
+                    autoPlayedMessagesRef.current.add(lastAIMessage.id);
+                    handleTextToSpeech(lastAIMessage.id, lastAIMessage.content);
+                  }
+                }
+              }, 300); // Small delay to ensure AI response is available
+            }
+          });
         }, 500);
 
         return () => clearTimeout(timer);
