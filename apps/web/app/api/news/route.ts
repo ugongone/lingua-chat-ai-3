@@ -16,8 +16,16 @@ interface HackerNewsItem {
   type: string;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    // URLからインデックスパラメータを取得
+    const { searchParams } = new URL(request.url);
+    const indexParam = searchParams.get('index');
+    const index = indexParam ? parseInt(indexParam, 10) : 0;
+
+    // インデックスが負の場合は0にリセット
+    const storyIndex = Math.max(0, index);
+
     // Hacker News Top Stories を取得
     const topStoriesResponse = await fetch(
       "https://hacker-news.firebaseio.com/v0/topstories.json"
@@ -33,8 +41,11 @@ export async function GET() {
       throw new Error("No stories found");
     }
 
-    // 最初のストーリーの詳細を取得
-    const topStoryId = topStoryIds[0];
+    // インデックスが範囲外の場合は最初に戻る
+    const actualIndex = storyIndex >= topStoryIds.length ? 0 : storyIndex;
+    
+    // 指定されたインデックスのストーリーの詳細を取得
+    const topStoryId = topStoryIds[actualIndex];
     const storyResponse = await fetch(
       `https://hacker-news.firebaseio.com/v0/item/${topStoryId}.json`
     );
@@ -90,12 +101,14 @@ Make it sound like you're telling a friend about something interesting you just 
     const title = titleMatch?.[1]?.trim() || "📰 Latest Tech News";
     const content = summaryMatch?.[1]?.trim() || summary;
 
-    // 既存チャット形式でレスポンス
+    // 既存チャット形式でレスポンス（現在のインデックス情報も含める）
     return NextResponse.json({
       id: Date.now().toString(),
       role: "assistant",
       content: `${title}\n\n${content}`,
       type: "news",
+      currentIndex: actualIndex,
+      totalStories: topStoryIds.length,
       timestamp: new Date().toLocaleTimeString('ja-JP', {
         hour: "2-digit",
         minute: "2-digit", 

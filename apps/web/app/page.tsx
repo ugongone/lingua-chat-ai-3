@@ -32,6 +32,8 @@ interface Message {
   translatedContent?: string;
   timestamp: string;
   type?: "news" | "chat";
+  currentIndex?: number;
+  totalStories?: number;
 }
 
 export default function ChatUI() {
@@ -79,6 +81,8 @@ export default function ChatUI() {
   const [longPressMessageId, setLongPressMessageId] = useState<string | null>(
     null
   );
+  // ニュースインデックス管理の状態
+  const [currentNewsIndex, setCurrentNewsIndex] = useState(0);
   const [touchStartTime, setTouchStartTime] = useState(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -115,45 +119,58 @@ export default function ChatUI() {
 
   const handleOptionSelect = async (option: (typeof initialOptions)[0]) => {
     if (option.id === "news") {
-      // 最新ニュース取得処理
-      try {
-        setIsAIResponding(true);
-
-        const response = await fetch("/api/news");
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const newsMessage = await response.json();
-
-        if (newsMessage.error) {
-          throw new Error(newsMessage.error);
-        }
-
-        setMessages((prev) => [...prev, newsMessage]);
-      } catch (error) {
-        console.error("News fetch error:", error);
-
-        const errorMessage = {
-          id: Date.now().toString(),
-          role: "assistant" as const,
-          content: "申し訳ございません。ニュースの取得中にエラーが発生しました。もう一度お試しください。",
-          timestamp: new Date().toLocaleTimeString('ja-JP', {
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: false,
-            timeZone: 'Asia/Tokyo'
-          }),
-        };
-        setMessages((prev) => [...prev, errorMessage]);
-      } finally {
-        setIsAIResponding(false);
-      }
+      // 最新ニュース取得処理（インデックス0をリセット）
+      await fetchNewsWithIndex(0);
+      setCurrentNewsIndex(0);
     } else {
       // その他の選択肢は従来通り
       console.log("選択肢が押されました:", option.title);
     }
+  }
+
+  // ニュース取得の共通処理
+  const fetchNewsWithIndex = async (index: number) => {
+    try {
+      setIsAIResponding(true);
+
+      const response = await fetch(`/api/news?index=${index}`);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const newsMessage = await response.json();
+
+      if (newsMessage.error) {
+        throw new Error(newsMessage.error);
+      }
+
+      setMessages((prev) => [...prev, newsMessage]);
+    } catch (error) {
+      console.error("News fetch error:", error);
+
+      const errorMessage = {
+        id: Date.now().toString(),
+        role: "assistant" as const,
+        content: "申し訳ございません。ニュースの取得中にエラーが発生しました。もう一度お試しください。",
+        timestamp: new Date().toLocaleTimeString('ja-JP', {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+          timeZone: 'Asia/Tokyo'
+        }),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setIsAIResponding(false);
+    }
+  }
+
+  // 次のニュースを取得する処理
+  const handleNextNews = async () => {
+    const nextIndex = currentNewsIndex + 1;
+    await fetchNewsWithIndex(nextIndex);
+    setCurrentNewsIndex(nextIndex);
   }
 
 
@@ -1273,6 +1290,23 @@ export default function ChatUI() {
                         )}
                       </div>
                     </div>
+                  </div>
+                )}
+
+                {/* ニュースメッセージの場合の「他のニュースも知りたい」ボタン */}
+                {message.role === "assistant" && message.type === "news" && (
+                  <div className="mt-3 w-full max-w-sm">
+                    <Button
+                      onClick={handleNextNews}
+                      disabled={isAIResponding}
+                      variant="outline"
+                      className="w-full h-12 p-3 text-left hover:bg-blue-50 hover:border-blue-300 transition-all duration-200 justify-start"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Newspaper className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                        <span className="text-sm font-medium text-gray-900">他のニュースも知りたい</span>
+                      </div>
+                    </Button>
                   </div>
                 )}
 
