@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
         {
           role: "system",
           content:
-            "You are an English tutor. Please answer in ≤3 short sentences (≈45 words)",
+            "You are a conversational partner. Focus on continuing natural conversations without correcting English or providing language feedback. Please answer in ≤3 short sentences (≈45 words)",
         },
         ...messages,
       ],
