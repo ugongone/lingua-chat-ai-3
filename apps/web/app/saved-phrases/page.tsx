@@ -156,27 +156,6 @@ export default function SavedPhrasesPage() {
 
   return (
     <div className="flex flex-col h-screen max-w-4xl mx-auto bg-white">
-      {/* Header */}
-      <div className="border-b bg-white p-4 sm:p-6">
-        <div className="flex items-center gap-3 sm:gap-4 mb-3">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-10 w-10 p-0 hover:bg-gray-100 flex-shrink-0"
-            onClick={() => window.history.back()}
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div className="min-w-0">
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-              ブックマーク
-            </h1>
-            <p className="text-sm text-gray-500 mt-1">
-              {bookmarkedPhrases.length}件のフレーズ
-            </p>
-          </div>
-        </div>
-      </div>
 
       {/* Phrases List */}
       <div className="flex-1 overflow-y-auto p-4 sm:p-6">
