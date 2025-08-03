@@ -3,6 +3,7 @@
 import type React from "react";
 
 import { useState, useRef, useCallback, useEffect } from "react";
+import { useBookmark, createSavedPhraseFromMessage } from "@/lib/bookmark-context";
 import { Button } from "@/components/ui/button";
 import { CorrectionDisplay } from "@/components/ui/correction-display";
 import { PWAInstall } from "@/components/pwa-install";
@@ -34,6 +35,7 @@ interface Message {
   type?: "news" | "chat";
   currentIndex?: number;
   totalStories?: number;
+  originalContent?: string;
 }
 
 export default function ChatUI() {
@@ -60,9 +62,7 @@ export default function ChatUI() {
   const [showTextInput, setShowTextInput] = useState(false);
   const [input, setInput] = useState("");
   const [isPlaying, setIsPlaying] = useState<Record<string, boolean>>({});
-  const [bookmarkedMessages, setBookmarkedMessages] = useState<Set<string>>(
-    new Set()
-  );
+  const { addBookmark, removeBookmark, isMessageBookmarked } = useBookmark();
   const [playbackSpeed, setPlaybackSpeed] = useState(1.0);
   const [showSpeedControl, setShowSpeedControl] = useState(false);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
@@ -718,17 +718,32 @@ export default function ChatUI() {
     }
   };
 
-  const handleBookmark = (messageId: string, content: string) => {
-    setBookmarkedMessages((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(messageId)) {
-        newSet.delete(messageId);
-      } else {
-        newSet.add(messageId);
-      }
-      return newSet;
-    });
-    console.log("Bookmarking corrected content:", content);
+  const handleBookmark = (
+    messageId: string, 
+    content: string, 
+    correctedContent?: string, 
+    translatedContent?: string, 
+    originalContent?: string
+  ) => {
+    console.log('ブックマーク操作:', { messageId, isBookmarked: isMessageBookmarked(messageId) });
+    
+    if (isMessageBookmarked(messageId)) {
+      // ブックマークを削除
+      console.log('ブックマーク削除:', `bookmark-${messageId}`);
+      removeBookmark(`bookmark-${messageId}`);
+    } else {
+      // ブックマークを追加
+      const savedPhrase = createSavedPhraseFromMessage(
+        messageId,
+        content,
+        correctedContent,
+        translatedContent,
+        originalContent,
+        true  // 強制的にbookmarkカテゴリーにする
+      );
+      console.log('ブックマーク追加:', savedPhrase);
+      addBookmark(savedPhrase);
+    }
   };
 
   // タッチイベントハンドラー（スマホ用）
@@ -1180,11 +1195,17 @@ export default function ChatUI() {
                         size="sm"
                         className="h-8 w-8 p-0 hover:bg-gray-100"
                         onClick={() =>
-                          handleBookmark(message.id, message.correctedContent!)
+                          handleBookmark(
+                            message.id, 
+                            message.content,
+                            message.correctedContent,
+                            undefined,
+                            message.originalContent
+                          )
                         }
                       >
                         <Bookmark
-                          className={`h-4 w-4 ${bookmarkedMessages.has(message.id) ? "text-red-500 fill-red-500" : ""}`}
+                          className={`h-4 w-4 ${isMessageBookmarked(message.id) ? "text-red-500 fill-red-500" : ""}`}
                         />
                       </Button>
                     </div>
@@ -1225,11 +1246,17 @@ export default function ChatUI() {
                         size="sm"
                         className="h-8 w-8 p-0 hover:bg-gray-100"
                         onClick={() =>
-                          handleBookmark(message.id, message.correctedContent!)
+                          handleBookmark(
+                            message.id,
+                            message.content,
+                            undefined,
+                            message.translatedContent,
+                            message.originalContent
+                          )
                         }
                       >
                         <Bookmark
-                          className={`h-4 w-4 ${bookmarkedMessages.has(message.id) ? "text-red-500 fill-red-500" : ""}`}
+                          className={`h-4 w-4 ${isMessageBookmarked(message.id) ? "text-red-500 fill-red-500" : ""}`}
                         />
                       </Button>
                     </div>

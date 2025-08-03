@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import { AppLayout } from "@/components/ui/app-layout";
+import { BookmarkProvider } from "@/lib/bookmark-context";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -39,9 +40,11 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        <AppLayout>
-          {children}
-        </AppLayout>
+        <BookmarkProvider>
+          <AppLayout>
+            {children}
+          </AppLayout>
+        </BookmarkProvider>
       </body>
     </html>
   );

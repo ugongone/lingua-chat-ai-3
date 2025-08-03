@@ -1,158 +1,63 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import React, { useState, useCallback } from "react";
+import { useBookmark } from "@/lib/bookmark-context";
 import { Button } from "@/components/ui/button";
 import {
-  Edit3,
   Trash2,
   Copy,
   Volume2,
-  ArrowLeft,
+  VolumeX,
   Bookmark,
-  Languages,
-  CheckCircle,
 } from "lucide-react";
 
-interface SavedPhrase {
-  id: string;
-  content: string;
-  translation?: string;
-  category: "correction" | "bookmark" | "translation";
-  timestamp: string;
-  originalContent?: string;
-}
 
 export default function SavedPhrasesPage() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editContent, setEditContent] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<
-    "all" | "correction" | "bookmark" | "translation"
-  >("all");
+  const { savedPhrases, removeBookmark } = useBookmark();
+  const [isPlaying, setIsPlaying] = useState<Record<string, boolean>>({});
+  const [playbackSpeed] = useState(1.0); // 固定速度で実装
 
-  // Mock data for saved phrases
-  const [savedPhrases, setSavedPhrases] = useState<SavedPhrase[]>([
-    {
-      id: "1",
-      content: "I'd like to check my current bill and payment status.",
-      category: "correction",
-      timestamp: "2024-01-15 14:30",
-      originalContent: "I want to checking my bill",
-    },
-    {
-      id: "2",
-      content: "Could you please help me understand the billing process?",
-      category: "correction",
-      timestamp: "2024-01-15 15:45",
-      originalContent: "Can you help me understand billing process",
-    },
-    {
-      id: "3",
-      content:
-        "Hungary's Historic Library Battles Beetle Invasion to Save Priceless Books",
-      translation:
-        "ハンガリーの歴史的図書館が貴重な書籍を守るため甲虫の侵入と戦う",
-      category: "bookmark",
-      timestamp: "2024-01-16 09:20",
-    },
-    {
-      id: "4",
-      content: "Thank you for your assistance with this matter.",
-      category: "correction",
-      timestamp: "2024-01-16 11:15",
-      originalContent: "Thanks for help with this",
-    },
-    {
-      id: "5",
-      content: "generative AI agent",
-      translation: "生成AIエージェント",
-      category: "translation",
-      timestamp: "2024-01-16 16:30",
-    },
-    {
-      id: "6",
-      content:
-        "The team is using high-tech methods to protect and preserve these irreplaceable treasures",
-      translation:
-        "チームは、これらのかけがえのない宝物を保護し保存するためにハイテク手法を使用している",
-      category: "bookmark",
-      timestamp: "2024-01-17 10:45",
-    },
-  ]);
 
-  const categories = [
-    { id: "all", label: "すべて", icon: null },
-    { id: "correction", label: "修正", icon: CheckCircle },
-    { id: "bookmark", label: "ブックマーク", icon: Bookmark },
-    { id: "translation", label: "翻訳", icon: Languages },
-  ];
+  // ブックマーク関連のフレーズを取得（過去の修正・翻訳も含む）
+  const bookmarkedPhrases = savedPhrases;
 
-  const bookmarkedPhrases = useMemo(() => {
-    return savedPhrases.filter((phrase) => phrase.category === "bookmark");
-  }, [savedPhrases]);
 
-  const handleEdit = (phrase: SavedPhrase) => {
-    setEditingId(phrase.id);
-    setEditContent(phrase.content);
-  };
-
-  const handleSaveEdit = () => {
-    if (editingId && editContent.trim()) {
-      setSavedPhrases((prev) =>
-        prev.map((phrase) =>
-          phrase.id === editingId
-            ? { ...phrase, content: editContent.trim() }
-            : phrase
-        )
-      );
-      setEditingId(null);
-      setEditContent("");
-    }
-  };
-
-  const handleCancelEdit = () => {
-    setEditingId(null);
-    setEditContent("");
-  };
 
   const handleDelete = (id: string) => {
-    setSavedPhrases((prev) => prev.filter((phrase) => phrase.id !== id));
+    removeBookmark(id);
   };
 
   const handleCopy = (content: string) => {
     navigator.clipboard.writeText(content);
   };
 
-  const handlePlayAudio = (content: string) => {
-    console.log("Playing audio for:", content);
-    // Audio playback logic would go here
-  };
+  const handleTextToSpeech = useCallback(async (
+    phraseId: string, 
+    text: string
+  ) => {
+    try {
+      setIsPlaying((prev) => ({ ...prev, [phraseId]: true }));
 
-  const getCategoryIcon = (category: string) => {
-    switch (category) {
-      case "correction":
-        return <CheckCircle className="h-4 w-4 text-green-600" />;
-      case "bookmark":
-        return <Bookmark className="h-4 w-4 text-red-500" />;
-      case "translation":
-        return <Languages className="h-4 w-4 text-blue-600" />;
-      default:
-        return null;
+      const { ttsPlayer } = await import('@/lib/audio-player');
+      
+      await ttsPlayer.speak(text, playbackSpeed, {
+        onStart: () => {
+          setIsPlaying((prev) => ({ ...prev, [phraseId]: true }));
+        },
+        onEnd: () => {
+          setIsPlaying((prev) => ({ ...prev, [phraseId]: false }));
+        },
+        onError: (error) => {
+          console.error("TTS error:", error);
+          setIsPlaying((prev) => ({ ...prev, [phraseId]: false }));
+        }
+      });
+    } catch (error) {
+      console.error("TTS error:", error);
+      setIsPlaying((prev) => ({ ...prev, [phraseId]: false }));
     }
-  };
+  }, [playbackSpeed]);
 
-  const getCategoryColor = (category: string) => {
-    switch (category) {
-      case "correction":
-        return "bg-green-50 border-green-200";
-      case "bookmark":
-        return "bg-red-50 border-red-200";
-      case "translation":
-        return "bg-blue-50 border-blue-200";
-      default:
-        return "bg-gray-50 border-gray-200";
-    }
-  };
 
   return (
     <div className="flex flex-col h-screen max-w-4xl mx-auto bg-white">
@@ -203,42 +108,37 @@ export default function SavedPhrasesPage() {
                   </div>
 
                   {/* Action Buttons - Mobile optimized */}
-                  {editingId !== phrase.id && (
-                    <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-9 w-9 p-0 hover:bg-gray-100 touch-manipulation"
-                        onClick={() => handleCopy(phrase.content)}
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-9 w-9 p-0 hover:bg-gray-100 touch-manipulation"
-                        onClick={() => handlePlayAudio(phrase.content)}
-                      >
+                  <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-9 w-9 p-0 hover:bg-gray-100 touch-manipulation"
+                      onClick={() => handleCopy(phrase.content)}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-9 w-9 p-0 hover:bg-gray-100 touch-manipulation"
+                      onClick={() => handleTextToSpeech(phrase.id, phrase.content)}
+                      disabled={isPlaying[phrase.id]}
+                    >
+                      {isPlaying[phrase.id] ? (
+                        <VolumeX className="h-4 w-4" />
+                      ) : (
                         <Volume2 className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-9 w-9 p-0 hover:bg-gray-100 touch-manipulation"
-                        onClick={() => handleEdit(phrase)}
-                      >
-                        <Edit3 className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-9 w-9 p-0 hover:bg-red-100 text-red-600 touch-manipulation"
-                        onClick={() => handleDelete(phrase.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  )}
+                      )}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-9 w-9 p-0 hover:bg-red-100 text-red-600 touch-manipulation"
+                      onClick={() => handleDelete(phrase.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
             ))}
