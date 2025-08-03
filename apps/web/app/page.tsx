@@ -937,437 +937,439 @@ export default function ChatUI() {
   }, []);
 
   return (
-    <div
-      className="flex flex-col h-screen max-w-4xl mx-auto bg-white"
-      onClick={handleBackgroundClick}
-    >
-      <style>{`
-        .message-content::selection {
-          background-color: rgba(59, 130, 246, 0.3);
-          color: inherit;
-        }
-
-        .message-content::-moz-selection {
-          background-color: rgba(59, 130, 246, 0.3);
-          color: inherit;
-        }
-
-        .ai-message-content::selection {
-          background-color: rgba(16, 185, 129, 0.3);
-          color: inherit;
-        }
-
-        .ai-message-content::-moz-selection {
-          background-color: rgba(16, 185, 129, 0.3);
-          color: inherit;
-        }
-
-        .correction-content::selection {
-          background-color: rgba(245, 158, 11, 0.3);
-          color: inherit;
-        }
-
-        .correction-content::-moz-selection {
-          background-color: rgba(245, 158, 11, 0.3);
-          color: inherit;
-        }
-
-        .selectable-text {
-          cursor: text;
-          transition: all 0.2s ease;
-          -webkit-user-select: text;
-          -moz-user-select: text;
-          -ms-user-select: text;
-          user-select: text;
-          -webkit-touch-callout: none;
-        }
-
-        .selectable-text:hover {
-          background-color: rgba(59, 130, 246, 0.05);
-        }
-
-        .selecting {
-          background-color: rgba(59, 130, 246, 0.1);
-          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
-          transition: all 0.2s ease;
-        }
-
-        .long-press-feedback {
-          background-color: rgba(59, 130, 246, 0.2);
-          transform: scale(1.02);
-          transition: all 0.3s ease;
-        }
-
-        .translation-popup {
-          animation: fadeInUp 0.3s ease-out;
-        }
-
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translate(-50%, -90%);
+    <>
+      <div
+        className="flex flex-col h-[calc(100vh-4rem)] max-w-4xl mx-auto bg-white"
+        onClick={handleBackgroundClick}
+      >
+        <style>{`
+          .message-content::selection {
+            background-color: rgba(59, 130, 246, 0.3);
+            color: inherit;
           }
-          to {
-            opacity: 1;
-            transform: translate(-50%, -100%);
-          }
-        }
 
-        /* モバイル向けのタッチ最適化 */
-        @media (max-width: 768px) {
+          .message-content::-moz-selection {
+            background-color: rgba(59, 130, 246, 0.3);
+            color: inherit;
+          }
+
+          .ai-message-content::selection {
+            background-color: rgba(16, 185, 129, 0.3);
+            color: inherit;
+          }
+
+          .ai-message-content::-moz-selection {
+            background-color: rgba(16, 185, 129, 0.3);
+            color: inherit;
+          }
+
+          .correction-content::selection {
+            background-color: rgba(245, 158, 11, 0.3);
+            color: inherit;
+          }
+
+          .correction-content::-moz-selection {
+            background-color: rgba(245, 158, 11, 0.3);
+            color: inherit;
+          }
+
           .selectable-text {
-            -webkit-tap-highlight-color: rgba(59, 130, 246, 0.2);
-            tap-highlight-color: rgba(59, 130, 246, 0.2);
+            cursor: text;
+            transition: all 0.2s ease;
+            -webkit-user-select: text;
+            -moz-user-select: text;
+            -ms-user-select: text;
+            user-select: text;
+            -webkit-touch-callout: none;
           }
-        }
 
-        .slider::-webkit-slider-thumb {
-          appearance: none;
-          height: 20px;
-          width: 20px;
-          border-radius: 50%;
-          background: #3b82f6;
-          cursor: pointer;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        }
-
-        .slider::-moz-range-thumb {
-          height: 20px;
-          width: 20px;
-          border-radius: 50%;
-          background: #3b82f6;
-          cursor: pointer;
-          border: none;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        }
-
-        .slider::-webkit-slider-track {
-          height: 8px;
-          border-radius: 4px;
-          background: #e5e7eb;
-        }
-
-        .slider::-moz-range-track {
-          height: 8px;
-          border-radius: 4px;
-          background: #e5e7eb;
-          border: none;
-        }
-
-        .animate-slide-up {
-          animation: slideUp 0.3s ease-out;
-        }
-
-        @keyframes slideUp {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
+          .selectable-text:hover {
+            background-color: rgba(59, 130, 246, 0.05);
           }
-          to {
-            opacity: 1;
-            transform: translateY(0);
+
+          .selecting {
+            background-color: rgba(59, 130, 246, 0.1);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+            transition: all 0.2s ease;
           }
-        }
-      `}</style>
-      {/* Chat Messages */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
-          >
+
+          .long-press-feedback {
+            background-color: rgba(59, 130, 246, 0.2);
+            transform: scale(1.02);
+            transition: all 0.3s ease;
+          }
+
+          .translation-popup {
+            animation: fadeInUp 0.3s ease-out;
+          }
+
+          @keyframes fadeInUp {
+            from {
+              opacity: 0;
+              transform: translate(-50%, -90%);
+            }
+            to {
+              opacity: 1;
+              transform: translate(-50%, -100%);
+            }
+          }
+
+          /* モバイル向けのタッチ最適化 */
+          @media (max-width: 768px) {
+            .selectable-text {
+              -webkit-tap-highlight-color: rgba(59, 130, 246, 0.2);
+              tap-highlight-color: rgba(59, 130, 246, 0.2);
+            }
+          }
+
+          .slider::-webkit-slider-thumb {
+            appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #3b82f6;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+          }
+
+          .slider::-moz-range-thumb {
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #3b82f6;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+          }
+
+          .slider::-webkit-slider-track {
+            height: 8px;
+            border-radius: 4px;
+            background: #e5e7eb;
+          }
+
+          .slider::-moz-range-track {
+            height: 8px;
+            border-radius: 4px;
+            background: #e5e7eb;
+            border: none;
+          }
+
+          .animate-slide-up {
+            animation: slideUp 0.3s ease-out;
+          }
+
+          @keyframes slideUp {
+            from {
+              opacity: 0;
+              transform: translateY(20px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+        `}</style>
+        {/* Chat Messages */}
+        <div className="flex-1 overflow-y-auto p-6 pb-36 space-y-6">
+          {messages.map((message) => (
             <div
-              className={`flex max-w-[80%] ${message.role === "user" ? "flex-row-reverse" : "flex-row"}`}
+              key={message.id}
+              className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
             >
-              {message.role === "assistant" && null}
-
               <div
-                className={`flex flex-col ${message.role === "user" ? "items-end" : "items-start"}`}
+                className={`flex max-w-[80%] ${message.role === "user" ? "flex-row-reverse" : "flex-row"}`}
               >
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="font-semibold text-gray-900">
-                    {message.role === "assistant" ? "Bob" : "ぼく"}
-                  </span>
-                  <span className="text-sm text-gray-500">
-                    {message.timestamp}
-                  </span>
-                </div>
+                {message.role === "assistant" && null}
 
                 <div
-                  className={`rounded-lg p-4 ${message.role === "assistant" ? "selectable-text" : ""} ${
-                    message.role === "user"
-                      ? "bg-blue-500 text-white"
-                      : "bg-gray-50 text-gray-900"
-                  } ${message.role === "assistant" && autoBlurText ? "blur-sm hover:blur-none transition-all duration-200" : ""}
-                  ${message.role === "assistant" && selectedMessageId === message.id ? "selecting" : ""} ${message.role === "assistant" && longPressMessageId === message.id ? "long-press-feedback" : ""}`}
-                  onTouchStart={
-                    message.role === "assistant"
-                      ? handleTouchStart(message.id)
-                      : undefined
-                  }
-                  onTouchMove={
-                    message.role === "assistant" ? handleTouchMove : undefined
-                  }
-                  onTouchEnd={
-                    message.role === "assistant"
-                      ? handleTouchEnd(message.id)
-                      : undefined
-                  }
-                  onMouseDown={
-                    message.role === "assistant"
-                      ? handleMouseDown(message.id)
-                      : undefined
-                  }
-                  onMouseUp={
-                    message.role === "assistant"
-                      ? handleMouseUp()
-                      : undefined
-                  }
-                  onClick={(e) => e.stopPropagation()}
+                  className={`flex flex-col ${message.role === "user" ? "items-end" : "items-start"}`}
                 >
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-semibold text-gray-900">
+                      {message.role === "assistant" ? "Bob" : "ぼく"}
+                    </span>
+                    <span className="text-sm text-gray-500">
+                      {message.timestamp}
+                    </span>
+                  </div>
+
                   <div
-                    className={`whitespace-pre-line select-text ${
+                    className={`rounded-lg p-4 ${message.role === "assistant" ? "selectable-text" : ""} ${
                       message.role === "user"
-                        ? "message-content"
-                        : "ai-message-content"
-                    }`}
+                        ? "bg-blue-500 text-white"
+                        : "bg-gray-50 text-gray-900"
+                    } ${message.role === "assistant" && autoBlurText ? "blur-sm hover:blur-none transition-all duration-200" : ""}
+                    ${message.role === "assistant" && selectedMessageId === message.id ? "selecting" : ""} ${message.role === "assistant" && longPressMessageId === message.id ? "long-press-feedback" : ""}`}
+                    onTouchStart={
+                      message.role === "assistant"
+                        ? handleTouchStart(message.id)
+                        : undefined
+                    }
+                    onTouchMove={
+                      message.role === "assistant" ? handleTouchMove : undefined
+                    }
+                    onTouchEnd={
+                      message.role === "assistant"
+                        ? handleTouchEnd(message.id)
+                        : undefined
+                    }
+                    onMouseDown={
+                      message.role === "assistant"
+                        ? handleMouseDown(message.id)
+                        : undefined
+                    }
+                    onMouseUp={
+                      message.role === "assistant"
+                        ? handleMouseUp()
+                        : undefined
+                    }
+                    onClick={(e) => e.stopPropagation()}
                   >
-                    {/* ニュース記事の特別なレンダリング */}
-                    {message.role === "assistant" &&
-                    message.type === "news" ? (
-                      <div className="space-y-4">
-                        {/* ニュースヘッダー */}
-                        <div className="border-l-4 border-blue-500 pl-4 py-2 bg-blue-50 rounded-r-lg">
-                          <div className="flex items-start">
-                            <div>
-                              <div className="text-xs text-blue-600 font-medium uppercase tracking-wide mb-1">
-                                Breaking News
+                    <div
+                      className={`whitespace-pre-line select-text ${
+                        message.role === "user"
+                          ? "message-content"
+                          : "ai-message-content"
+                      }`}
+                    >
+                      {/* ニュース記事の特別なレンダリング */}
+                      {message.role === "assistant" &&
+                      message.type === "news" ? (
+                        <div className="space-y-4">
+                          {/* ニュースヘッダー */}
+                          <div className="border-l-4 border-blue-500 pl-4 py-2 bg-blue-50 rounded-r-lg">
+                            <div className="flex items-start">
+                              <div>
+                                <div className="text-xs text-blue-600 font-medium uppercase tracking-wide mb-1">
+                                  Breaking News
+                                </div>
+                                <h3 className="text-lg font-bold text-gray-900 leading-tight">
+                                  {message.content.split("\n\n")[0] || ""}
+                                </h3>
                               </div>
-                              <h3 className="text-lg font-bold text-gray-900 leading-tight">
-                                {message.content.split("\n\n")[0] || ""}
-                              </h3>
                             </div>
                           </div>
-                        </div>
 
-                        {/* ニュース本文 */}
-                        <div className="text-gray-700 leading-relaxed">
-                          {message.content.split("\n\n").slice(1).join("\n\n")}
+                          {/* ニュース本文 */}
+                          <div className="text-gray-700 leading-relaxed">
+                            {message.content.split("\n\n").slice(1).join("\n\n")}
+                          </div>
+                        </div>
+                      ) : (
+                        message.content
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 修正された英語の表示 */}
+                  {message.role === "user" && message.correctedContent && (
+                    <>
+                      <CorrectionDisplay
+                        content={message.correctedContent}
+                        type="correction"
+                      />
+                      <div className="flex items-center gap-2 mt-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 hover:bg-gray-100"
+                          onClick={() => handleCopy(message.correctedContent!)}
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 hover:bg-gray-100"
+                          onClick={() =>
+                            handleTextToSpeech(
+                              message.id,
+                              message.correctedContent!
+                            )
+                          }
+                        >
+                          <Volume2 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 hover:bg-gray-100"
+                          onClick={() =>
+                            handleBookmark(
+                              message.id, 
+                              message.content,
+                              message.correctedContent,
+                              undefined,
+                              message.originalContent
+                            )
+                          }
+                        >
+                          <Bookmark
+                            className={`h-4 w-4 ${isMessageBookmarked(message.id) ? "text-red-500 fill-red-500" : ""}`}
+                          />
+                        </Button>
+                      </div>
+                    </>
+                  )}
+
+                  {/* 日本語の英訳表示 */}
+                  {message.role === "user" && message.translatedContent && (
+                    <>
+                      <CorrectionDisplay
+                        content={message.translatedContent}
+                        type="translation"
+                      />
+                      <div className="flex items-center gap-2 mt-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 hover:bg-gray-100"
+                          onClick={() => handleCopy(message.translatedContent!)}
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 hover:bg-gray-100"
+                          onClick={() =>
+                            handleTextToSpeech(
+                              message.id,
+                              message.translatedContent!
+                            )
+                          }
+                        >
+                          <Volume2 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 hover:bg-gray-100"
+                          onClick={() =>
+                            handleBookmark(
+                              message.id,
+                              message.content,
+                              undefined,
+                              message.translatedContent,
+                              message.originalContent
+                            )
+                          }
+                        >
+                          <Bookmark
+                            className={`h-4 w-4 ${isMessageBookmarked(message.id) ? "text-red-500 fill-red-500" : ""}`}
+                          />
+                        </Button>
+                      </div>
+                    </>
+                  )}
+
+                  {message.role === "assistant" && (
+                    <div className="flex items-center gap-2 mt-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 hover:bg-gray-100"
+                        onClick={() => handleCopy(message.content)}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 hover:bg-gray-100"
+                        onClick={() =>
+                          handleTextToSpeech(message.id, message.content)
+                        }
+                        disabled={isPlaying[message.id]}
+                      >
+                        {isPlaying[message.id] ? (
+                          <VolumeX className="h-4 w-4" />
+                        ) : (
+                          <Volume2 className="h-4 w-4" />
+                        )}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className={`h-8 w-8 p-0 hover:bg-gray-100 ${translatedMessages.has(message.id) ? "bg-blue-100 text-blue-600" : ""}`}
+                        onClick={() => handleTranslateMessage(message.id, message.content)}
+                        disabled={translatingMessages.has(message.id)}
+                      >
+                        {translatingMessages.has(message.id) ? (
+                          <div className="animate-spin h-4 w-4 border border-blue-500 border-t-transparent rounded-full" />
+                        ) : (
+                          <Languages className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* 翻訳されたコンテンツの表示 */}
+                  {message.role === "assistant" && translatedMessages.has(message.id) && (
+                    <div className="mt-2 rounded-lg p-3 bg-blue-50 border border-blue-200 text-blue-800 text-sm max-w-full">
+                      <div className="flex items-start gap-2">
+                        <Languages className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                        <div className="whitespace-pre-line flex-1">
+                          {translationErrors.has(message.id) ? (
+                            <span className="text-red-600">{translationErrors.get(message.id)}</span>
+                          ) : (
+                            messageTranslations.get(message.id) || "翻訳中..."
+                          )}
                         </div>
                       </div>
-                    ) : (
-                      message.content
-                    )}
-                  </div>
+                    </div>
+                  )}
+
+                  {/* ニュースメッセージの場合の「他のニュースも知りたい」ボタン */}
+                  {message.role === "assistant" && message.type === "news" && (
+                    <div className="mt-3 w-full max-w-sm">
+                      <Button
+                        onClick={handleNextNews}
+                        disabled={isAIResponding}
+                        variant="outline"
+                        className="w-full h-12 p-3 text-left hover:bg-blue-50 hover:border-blue-300 transition-all duration-200 justify-start"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Newspaper className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                          <span className="text-sm font-medium text-gray-900">他のニュースも知りたい</span>
+                        </div>
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* 初期選択肢の表示 */}
+                  {message.id === "initial" && (
+                    <div className="mt-4 space-y-3 w-full max-w-sm">
+                      {initialOptions.map((option) => {
+                        const IconComponent = option.icon
+                        return (
+                          <Button
+                            key={option.id}
+                            onClick={() => handleOptionSelect(option)}
+                            variant="outline"
+                            className="w-full h-12 p-3 text-left hover:bg-blue-50 hover:border-blue-300 transition-all duration-200 justify-start"
+                          >
+                            <div className="flex items-center gap-3">
+                              <IconComponent className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                              <span className="text-sm font-medium text-gray-900">{option.title}</span>
+                            </div>
+                          </Button>
+                        )
+                      })}
+                    </div>
+                  )}
                 </div>
 
-                {/* 修正された英語の表示 */}
-                {message.role === "user" && message.correctedContent && (
-                  <>
-                    <CorrectionDisplay
-                      content={message.correctedContent}
-                      type="correction"
-                    />
-                    <div className="flex items-center gap-2 mt-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 hover:bg-gray-100"
-                        onClick={() => handleCopy(message.correctedContent!)}
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 hover:bg-gray-100"
-                        onClick={() =>
-                          handleTextToSpeech(
-                            message.id,
-                            message.correctedContent!
-                          )
-                        }
-                      >
-                        <Volume2 className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 hover:bg-gray-100"
-                        onClick={() =>
-                          handleBookmark(
-                            message.id, 
-                            message.content,
-                            message.correctedContent,
-                            undefined,
-                            message.originalContent
-                          )
-                        }
-                      >
-                        <Bookmark
-                          className={`h-4 w-4 ${isMessageBookmarked(message.id) ? "text-red-500 fill-red-500" : ""}`}
-                        />
-                      </Button>
-                    </div>
-                  </>
-                )}
-
-                {/* 日本語の英訳表示 */}
-                {message.role === "user" && message.translatedContent && (
-                  <>
-                    <CorrectionDisplay
-                      content={message.translatedContent}
-                      type="translation"
-                    />
-                    <div className="flex items-center gap-2 mt-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 hover:bg-gray-100"
-                        onClick={() => handleCopy(message.translatedContent!)}
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 hover:bg-gray-100"
-                        onClick={() =>
-                          handleTextToSpeech(
-                            message.id,
-                            message.translatedContent!
-                          )
-                        }
-                      >
-                        <Volume2 className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 hover:bg-gray-100"
-                        onClick={() =>
-                          handleBookmark(
-                            message.id,
-                            message.content,
-                            undefined,
-                            message.translatedContent,
-                            message.originalContent
-                          )
-                        }
-                      >
-                        <Bookmark
-                          className={`h-4 w-4 ${isMessageBookmarked(message.id) ? "text-red-500 fill-red-500" : ""}`}
-                        />
-                      </Button>
-                    </div>
-                  </>
-                )}
-
-                {message.role === "assistant" && (
-                  <div className="flex items-center gap-2 mt-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0 hover:bg-gray-100"
-                      onClick={() => handleCopy(message.content)}
-                    >
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0 hover:bg-gray-100"
-                      onClick={() =>
-                        handleTextToSpeech(message.id, message.content)
-                      }
-                      disabled={isPlaying[message.id]}
-                    >
-                      {isPlaying[message.id] ? (
-                        <VolumeX className="h-4 w-4" />
-                      ) : (
-                        <Volume2 className="h-4 w-4" />
-                      )}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className={`h-8 w-8 p-0 hover:bg-gray-100 ${translatedMessages.has(message.id) ? "bg-blue-100 text-blue-600" : ""}`}
-                      onClick={() => handleTranslateMessage(message.id, message.content)}
-                      disabled={translatingMessages.has(message.id)}
-                    >
-                      {translatingMessages.has(message.id) ? (
-                        <div className="animate-spin h-4 w-4 border border-blue-500 border-t-transparent rounded-full" />
-                      ) : (
-                        <Languages className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </div>
-                )}
-
-                {/* 翻訳されたコンテンツの表示 */}
-                {message.role === "assistant" && translatedMessages.has(message.id) && (
-                  <div className="mt-2 rounded-lg p-3 bg-blue-50 border border-blue-200 text-blue-800 text-sm max-w-full">
-                    <div className="flex items-start gap-2">
-                      <Languages className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                      <div className="whitespace-pre-line flex-1">
-                        {translationErrors.has(message.id) ? (
-                          <span className="text-red-600">{translationErrors.get(message.id)}</span>
-                        ) : (
-                          messageTranslations.get(message.id) || "翻訳中..."
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* ニュースメッセージの場合の「他のニュースも知りたい」ボタン */}
-                {message.role === "assistant" && message.type === "news" && (
-                  <div className="mt-3 w-full max-w-sm">
-                    <Button
-                      onClick={handleNextNews}
-                      disabled={isAIResponding}
-                      variant="outline"
-                      className="w-full h-12 p-3 text-left hover:bg-blue-50 hover:border-blue-300 transition-all duration-200 justify-start"
-                    >
-                      <div className="flex items-center gap-3">
-                        <Newspaper className="h-5 w-5 text-blue-600 flex-shrink-0" />
-                        <span className="text-sm font-medium text-gray-900">他のニュースも知りたい</span>
-                      </div>
-                    </Button>
-                  </div>
-                )}
-
-                {/* 初期選択肢の表示 */}
-                {message.id === "initial" && (
-                  <div className="mt-4 space-y-3 w-full max-w-sm">
-                    {initialOptions.map((option) => {
-                      const IconComponent = option.icon
-                      return (
-                        <Button
-                          key={option.id}
-                          onClick={() => handleOptionSelect(option)}
-                          variant="outline"
-                          className="w-full h-12 p-3 text-left hover:bg-blue-50 hover:border-blue-300 transition-all duration-200 justify-start"
-                        >
-                          <div className="flex items-center gap-3">
-                            <IconComponent className="h-5 w-5 text-blue-600 flex-shrink-0" />
-                            <span className="text-sm font-medium text-gray-900">{option.title}</span>
-                          </div>
-                        </Button>
-                      )
-                    })}
-                  </div>
-                )}
+                {message.role === "user" && null}
               </div>
-
-              {message.role === "user" && null}
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
-      {/* Voice Input Area */}
-      <div className="border-t bg-white p-6 mb-4">
+      {/* Voice Input Area - 独立したコンテナ */}
+      <div className="fixed bottom-0 left-1/2 transform -translate-x-1/2 w-full max-w-4xl border-t bg-white p-6 pb-safe z-20">
         <div className="flex justify-center items-center">
           {/* Left side - Text input button */}
           <div className="absolute left-6">
@@ -1381,7 +1383,7 @@ export default function ChatUI() {
                 <Keyboard className="h-5 w-5" />
               </Button>
               {showTextInput && (
-                <div className="absolute bottom-16 left-0 mb-2 p-4 bg-white border border-gray-200 rounded-lg shadow-lg w-80 z-10">
+                <div className="absolute bottom-20 left-0 mb-2 p-4 bg-white border border-gray-200 rounded-lg shadow-lg w-80 z-25">
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium text-gray-700">
@@ -1454,7 +1456,7 @@ export default function ChatUI() {
             <div className="relative">
               {/* Settings menu items - slide up animation */}
               {showSettingsMenu && (
-                <div className="absolute bottom-12 right-0 flex flex-col gap-2 animate-slide-up">
+                <div className="absolute bottom-16 right-0 flex flex-col gap-2 animate-slide-up">
                   <Button
                     variant={autoPlayAudio ? "default" : "outline"}
                     size="sm"
@@ -1531,7 +1533,7 @@ export default function ChatUI() {
 
       {showSpeedControl && (
         <div 
-          className="fixed inset-0 z-10"
+          className="fixed inset-0 z-30"
           onClick={() => {
             if (!speedModalTouchProcessedRef.current) {
               setShowSpeedControl(false);
@@ -1548,7 +1550,7 @@ export default function ChatUI() {
           }}
         >
           <div 
-            className="absolute bottom-16 right-20 mb-2 p-4 bg-white border border-gray-200 rounded-lg shadow-lg w-64"
+            className="absolute bottom-40 right-20 mb-2 p-4 bg-white border border-gray-200 rounded-lg shadow-lg w-64"
             onClick={(e) => e.stopPropagation()}
             onTouchEnd={(e) => e.stopPropagation()}
           >
@@ -1586,7 +1588,7 @@ export default function ChatUI() {
       {/* Translation Popup */}
       {showTranslation && (
         <div
-          className="fixed bg-gray-900 text-white text-sm px-3 py-2 rounded-lg shadow-xl z-20 pointer-events-none translation-popup max-w-xs"
+          className="fixed bg-gray-900 text-white text-sm px-3 py-2 rounded-lg shadow-xl z-40 pointer-events-none translation-popup max-w-xs"
           style={{
             left: translationPosition.x,
             top: translationPosition.y,
@@ -1610,6 +1612,6 @@ export default function ChatUI() {
 
       {/* PWA Install Prompt */}
       <PWAInstall />
-    </div>
+    </>
   );
 }
