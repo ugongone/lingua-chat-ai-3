@@ -15,30 +15,7 @@ export function PWAInstall() {
   const [isInstalled, setIsInstalled] = useState(false);
 
   useEffect(() => {
-    // Service Worker の登録
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker
-        .register('/sw.js')
-        .then((registration) => {
-          console.log('Service Worker 登録成功:', registration);
-          
-          // 更新があった場合の処理
-          registration.addEventListener('updatefound', () => {
-            const newWorker = registration.installing;
-            if (newWorker) {
-              newWorker.addEventListener('statechange', () => {
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  console.log('新しいコンテンツが利用可能です');
-                  // 必要に応じて更新通知を表示
-                }
-              });
-            }
-          });
-        })
-        .catch((error) => {
-          console.error('Service Worker 登録失敗:', error);
-        });
-    }
+    // Service Worker の登録は ServiceWorkerRegister コンポーネントで行うため削除
 
     // PWA インストールプロンプトの処理
     const handleBeforeInstallPrompt = (e: Event) => {

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lingua-chat-ai-v1';
+const CACHE_NAME = 'lingua-chat-ai-v2';
 const urlsToCache = [
   '/',
   '/manifest.json',
@@ -13,6 +13,11 @@ const urlsToCache = [
 
 // インストール時にキャッシュを作成
 self.addEventListener('install', (event) => {
+  console.log('Service Worker: インストール開始');
+  
+  // 即座にアクティブ状態に移行（自動更新のため）
+  self.skipWaiting();
+  
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
@@ -27,17 +32,35 @@ self.addEventListener('install', (event) => {
 
 // アクティベーション時に古いキャッシュを削除
 self.addEventListener('activate', (event) => {
+  console.log('Service Worker: アクティベーション開始');
+  
+  // 既存のクライアント（開いているタブ）もこのService Workerで制御
+  self.clients.claim();
+  
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('Service Worker: 古いキャッシュを削除しました', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
+    Promise.all([
+      // 古いキャッシュの削除
+      caches.keys().then((cacheNames) => {
+        return Promise.all(
+          cacheNames.map((cacheName) => {
+            if (cacheName !== CACHE_NAME) {
+              console.log('Service Worker: 古いキャッシュを削除しました', cacheName);
+              return caches.delete(cacheName);
+            }
+          })
+        );
+      }),
+      // 全クライアントに更新完了を通知
+      clients.matchAll().then((clientList) => {
+        console.log('Service Worker: クライアントに更新通知を送信');
+        clientList.forEach((client) => {
+          client.postMessage({
+            type: 'SERVICE_WORKER_UPDATED',
+            version: CACHE_NAME
+          });
+        });
+      })
+    ])
   );
 });
 
@@ -74,38 +97,49 @@ self.addEventListener('fetch', (event) => {
     return;
   }
   
-  // 静的リソースはキャッシュファーストで対応
+  // 静的リソースはStale-While-Revalidate戦略で対応
   event.respondWith(
     caches.match(request)
-      .then((response) => {
-        // キャッシュにある場合はそれを返す
-        if (response) {
-          return response;
+      .then((cachedResponse) => {
+        // ネットワークから最新版を取得する処理（非同期で実行）
+        const fetchPromise = fetch(request)
+          .then((networkResponse) => {
+            // レスポンスが正常な場合はキャッシュに保存
+            if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+              const responseToCache = networkResponse.clone();
+              caches.open(CACHE_NAME)
+                .then((cache) => {
+                  cache.put(request, responseToCache);
+                  console.log('Service Worker: キャッシュを更新しました', request.url);
+                });
+            }
+            return networkResponse;
+          })
+          .catch((error) => {
+            console.log('Service Worker: ネットワークエラー、キャッシュを使用', error);
+            return cachedResponse; // ネットワークエラー時はキャッシュを返す
+          });
+
+        // キャッシュがある場合は即座に返し、裏でネットワークから更新
+        if (cachedResponse) {
+          console.log('Service Worker: キャッシュから返答', request.url);
+          // 裏でネットワークから最新版を取得（次回のために更新）
+          fetchPromise.catch(() => {}); // エラーは既にログ出力済みなので無視
+          return cachedResponse;
         }
         
-        // キャッシュにない場合はネットワークから取得
-        return fetch(request)
-          .then((response) => {
-            // レスポンスが無効な場合はそのまま返す
-            if (!response || response.status !== 200 || response.type !== 'basic') {
-              return response;
-            }
-            
-            // レスポンスをキャッシュに保存
-            const responseToCache = response.clone();
-            caches.open(CACHE_NAME)
-              .then((cache) => {
-                cache.put(request, responseToCache);
-              });
-            
-            return response;
-          })
-          .catch(() => {
-            // ネットワークエラーの場合はオフラインページを表示
-            if (request.destination === 'document') {
-              return caches.match('/offline.html');
-            }
+        // キャッシュがない場合はネットワークから取得を待つ
+        return fetchPromise.catch(() => {
+          // ネットワークエラーかつキャッシュもない場合
+          if (request.destination === 'document') {
+            return caches.match('/offline.html');
+          }
+          // その他のリソースの場合は適切なエラーレスポンスを返す
+          return new Response('リソースが利用できません', {
+            status: 503,
+            statusText: 'Service Unavailable'
           });
+        });
       })
   );
 });
@@ -149,3 +183,23 @@ self.addEventListener('notificationclick', (event) => {
     clients.openWindow('/')
   );
 });
+
+// メッセージハンドリング（自動更新用）
+self.addEventListener('message', (event) => {
+  console.log('Service Worker: メッセージを受信:', event.data);
+  
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    console.log('Service Worker: SKIP_WAITING メッセージを受信、即座にアクティブ化します');
+    self.skipWaiting();
+  }
+  
+  if (event.data && event.data.type === 'GET_VERSION') {
+    // クライアントにバージョン情報を返送
+    event.ports[0].postMessage({
+      type: 'VERSION_INFO',
+      version: CACHE_NAME
+    });
+  }
+});
+
+// 重複したactivateイベントリスナーを削除（上で統合済み）
