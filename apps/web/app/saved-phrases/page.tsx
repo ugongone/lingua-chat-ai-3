@@ -95,9 +95,9 @@ export default function SavedPhrasesPage() {
                   {/* Content */}
                   <div className="space-y-3">
                     {/* 日本語を最初に表示 */}
-                    {phrase.translation && (
+                    {phrase.originalContent && (
                       <div className="text-gray-900 leading-relaxed font-medium text-base sm:text-lg">
-                        {phrase.translation}
+                        {phrase.originalContent}
                       </div>
                     )}
 

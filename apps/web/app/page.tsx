@@ -340,6 +340,7 @@ export default function ChatUI() {
           content: result.text,
           correctedContent,
           translatedContent,
+          originalContent: result.text,
           timestamp: new Date().toLocaleTimeString('ja-JP', {
             hour: "2-digit",
             minute: "2-digit",
@@ -697,6 +698,7 @@ export default function ChatUI() {
       content: userInput,
       correctedContent,
       translatedContent,
+      originalContent: userInput,
       timestamp: new Date().toLocaleTimeString('ja-JP', {
         hour: "2-digit",
         minute: "2-digit",
@@ -1198,9 +1200,9 @@ export default function ChatUI() {
                           onClick={() =>
                             handleBookmark(
                               message.id, 
-                              message.content,
-                              message.correctedContent,
-                              undefined,
+                              message.translatedContent || "",
+                              message.translatedContent,
+                              message.originalContent,
                               message.originalContent
                             )
                           }
